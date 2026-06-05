@@ -1,0 +1,237 @@
+@import "tailwindcss";
+
+:root {
+  --background: #050507;
+  --foreground: #f8fafc;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--background);
+  overflow-x: hidden;
+}
+
+body {
+  width: 100%;
+  min-height: 100vh;
+  overflow-x: hidden;
+  background:
+    radial-gradient(circle at 16% 18%, rgba(20, 184, 166, 0.2), transparent 28rem),
+    radial-gradient(circle at 82% 72%, rgba(244, 114, 182, 0.14), transparent 30rem),
+    linear-gradient(135deg, #050507 0%, #0a0a10 44%, #11100c 100%);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.admin-input {
+  width: 100%;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(15, 23, 42, 0.74);
+  padding: 0.85rem 1rem;
+  color: #fff;
+  outline: none;
+}
+
+.admin-input:focus {
+  border-color: rgba(190, 242, 100, 0.8);
+  box-shadow: 0 0 0 3px rgba(190, 242, 100, 0.12);
+}
+
+.admin-input option {
+  background: #0f172a;
+  color: #fff;
+}
+
+.emicka-sparkle {
+  animation: emicka-sparkle-drift 6s ease-in-out infinite;
+  opacity: 0.35;
+  transform: translate3d(0, 0, 0);
+  will-change: opacity, transform;
+}
+
+.emicka-falling-star {
+  animation: emicka-starfall 16s linear infinite, emicka-starblink 2.8s ease-in-out infinite;
+  opacity: 0;
+  transform: translate3d(0, 0, 0);
+  will-change: opacity, transform;
+}
+
+.emicka-shooting-star {
+  width: 110px;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(191, 219, 254, 0.95));
+  box-shadow: 0 0 18px rgba(147, 197, 253, 0.75);
+  animation: emicka-shooting-star 1.05s ease-out forwards;
+  transform: rotate(-24deg);
+  will-change: opacity, transform;
+}
+
+.emicka-card-twinkle {
+  animation: emicka-card-twinkle 0.9s ease-out infinite;
+  opacity: 0;
+  transform: scale(0.4);
+  will-change: opacity, transform;
+}
+
+.emicka-unlock-glow {
+  animation: emicka-unlock-glow 1.6s ease-out forwards;
+  border: 1px solid rgba(190, 242, 100, 0.75);
+  box-shadow: 0 0 0 rgba(190, 242, 100, 0);
+}
+
+.emicka-unlock-particle {
+  animation: emicka-unlock-burst 1.45s ease-out forwards;
+  opacity: 0;
+  transform: translate3d(-50%, -50%, 0) scale(0.5);
+  will-change: opacity, transform;
+}
+
+@keyframes emicka-starfall {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, -12vh, 0);
+  }
+
+  12% {
+    opacity: 0.8;
+  }
+
+  70% {
+    opacity: 0.45;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate3d(18px, 112vh, 0);
+  }
+}
+
+@keyframes emicka-starblink {
+  0%,
+  100% {
+    filter: brightness(0.75);
+  }
+
+  50% {
+    filter: brightness(1.5);
+  }
+}
+
+@keyframes emicka-shooting-star {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) rotate(-24deg) scaleX(0.4);
+  }
+
+  12% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate3d(46vw, 18vh, 0) rotate(-24deg) scaleX(1);
+  }
+}
+
+@keyframes emicka-card-twinkle {
+  0% {
+    opacity: 0;
+    transform: scale(0.3) rotate(0deg);
+  }
+
+  45% {
+    opacity: 1;
+    transform: scale(1.25) rotate(45deg);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(0.5) rotate(90deg);
+  }
+}
+
+@keyframes emicka-unlock-glow {
+  0% {
+    opacity: 0;
+    box-shadow: 0 0 0 rgba(190, 242, 100, 0);
+  }
+
+  30% {
+    opacity: 1;
+    box-shadow: 0 0 34px rgba(190, 242, 100, 0.55);
+  }
+
+  100% {
+    opacity: 0;
+    box-shadow: 0 0 8px rgba(190, 242, 100, 0);
+  }
+}
+
+@keyframes emicka-unlock-burst {
+  0% {
+    opacity: 0;
+    transform: translate3d(-50%, -50%, 0) scale(0.5);
+  }
+
+  18% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate3d(calc(-50% + var(--tx)), calc(-50% + var(--ty)), 0) scale(1.15);
+  }
+}
+
+.emicka-sparkle::after {
+  position: absolute;
+  inset: -6px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(216, 180, 254, 0.34), transparent 68%);
+  content: "";
+}
+
+@keyframes emicka-sparkle-drift {
+  0% {
+    opacity: 0.18;
+    transform: translate3d(0, 10px, 0) scale(0.72);
+  }
+
+  45% {
+    opacity: 0.7;
+    transform: translate3d(12px, -10px, 0) scale(1);
+  }
+
+  100% {
+    opacity: 0.2;
+    transform: translate3d(-8px, 8px, 0) scale(0.78);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .emicka-sparkle,
+  .emicka-falling-star,
+  .emicka-shooting-star,
+  .emicka-card-twinkle,
+  .emicka-unlock-glow,
+  .emicka-unlock-particle {
+    animation: none;
+  }
+}
