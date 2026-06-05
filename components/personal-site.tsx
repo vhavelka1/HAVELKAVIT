@@ -16,7 +16,7 @@ type PersonalSiteProps = {
 };
 
 export function PersonalSite({ topics, settings, posts }: PersonalSiteProps) {
-  const [language, setLanguage] = useState<Language>("en");
+  const [language, setLanguage] = useState<Language>("cs");
   const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
 
   const activeTitle = selectedTopic ? getTitle(selectedTopic, language) : "";

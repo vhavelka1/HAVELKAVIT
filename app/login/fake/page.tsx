@@ -99,10 +99,12 @@ export default async function AdminPage({
 
 function AdminStatus({ error, saved }: { error?: string; saved?: string }) {
   if (error) {
+    const messages: Record<string, string> = {
+      "supabase-admin-key": "Ukladani potrebuje SUPABASE_SERVICE_ROLE_KEY v .env.local nebo na Vercelu.",
+      "upload-image": "Fotku se nepodarilo nahrat do Supabase Storage. Zkontroluj service role key a Storage opravneni.",
+    };
     const message =
-      error === "supabase-admin-key"
-        ? "Ukladani potrebuje SUPABASE_SERVICE_ROLE_KEY v .env.local nebo na Vercelu."
-        : "Zmenu se nepodarilo ulozit. Zkontroluj prosim Supabase tabulky a opravneni.";
+      messages[error] ?? "Zmenu se nepodarilo ulozit. Zkontroluj prosim Supabase tabulky a opravneni.";
 
     return (
       <div className="mb-8 rounded-3xl border border-pink-300/20 bg-pink-300/10 px-5 py-4 text-sm font-semibold text-pink-100">

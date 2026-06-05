@@ -14,7 +14,7 @@ export function TopicForm({ topic, actionLabel }: { topic?: AdminTopic; actionLa
       <AdminField label="Title EN" name="title_en" defaultValue={topic?.title_en ?? ""} />
       <AdminArea label="Description CS" name="description_cs" defaultValue={topic?.description_cs ?? ""} />
       <AdminArea label="Description EN" name="description_en" defaultValue={topic?.description_en ?? ""} />
-      <AdminField label="Image URL" name="image_url" defaultValue={topic?.image_url ?? ""} wide />
+      <ImageUploadField label="Fotka polozky" currentUrl={topic?.image_url ?? ""} />
       <div className="lg:col-span-2">
         <button className="h-12 rounded-full bg-teal-200 px-6 text-sm font-bold text-zinc-950 transition-colors hover:bg-white">
           {actionLabel}
@@ -51,17 +51,33 @@ export function SectionPostForm({
       <AdminField label="Sort order" name="sort_order" defaultValue={String(post?.sort_order ?? 0)} />
       <AdminField label="Titulek" name="title" defaultValue={post?.title ?? ""} wide />
       <AdminArea label="Text prispevku" name="body" defaultValue={post?.body ?? ""} />
-      <AdminField
-        label="Supabase image URL"
-        name="image_url"
-        defaultValue={post?.image_url ?? ""}
-      />
+      <ImageUploadField label="Fotka prispevku" currentUrl={post?.image_url ?? ""} />
       <div className="lg:col-span-2">
         <button className="h-12 rounded-full bg-teal-200 px-6 text-sm font-bold text-zinc-950 transition-colors hover:bg-white">
           {actionLabel}
         </button>
       </div>
     </form>
+  );
+}
+
+function ImageUploadField({ label, currentUrl }: { label: string; currentUrl: string }) {
+  return (
+    <label className="grid gap-2 lg:col-span-2">
+      <span className="font-mono text-xs uppercase tracking-[0.18em] text-violet-200">{label}</span>
+      <input type="hidden" name="existing_image_url" value={currentUrl} />
+      <input
+        name="image_file"
+        type="file"
+        accept="image/*"
+        className="admin-input file:mr-4 file:rounded-full file:border-0 file:bg-teal-200 file:px-4 file:py-2 file:text-sm file:font-bold file:text-zinc-950"
+      />
+      {currentUrl ? (
+        <span className="truncate text-xs font-semibold text-zinc-400">
+          Aktualni fotka: {currentUrl}
+        </span>
+      ) : null}
+    </label>
   );
 }
 
