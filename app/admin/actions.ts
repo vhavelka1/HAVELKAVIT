@@ -1,41 +1,37 @@
 "use server";
 
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import {
-  adminCookieName,
-  adminSessionValue,
-  isAdminAuthenticated,
-  isValidAdminLogin,
-} from "@/lib/admin-auth";
 import { defaultSiteSettings, getSupabaseAdminClient } from "@/lib/site-settings";
+import { getSupabaseAuthServerClient, isAdminAuthenticated } from "@/lib/supabase-auth";
 
 const realAdminPath = "/login/fake";
 
 export async function loginAdmin(formData: FormData) {
-  const username = String(formData.get("username") || "");
+  const email = String(formData.get("email") || "").trim();
   const password = String(formData.get("password") || "");
+  const supabase = await getSupabaseAuthServerClient();
 
-  if (!isValidAdminLogin(username, password)) {
+  if (!supabase || !email || !password) {
     redirect(`${realAdminPath}?error=login`);
   }
 
-  const cookieStore = await cookies();
-  cookieStore.set(adminCookieName, adminSessionValue(), {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 60 * 60 * 8,
-  });
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+  if (error) {
+    redirect(`${realAdminPath}?error=login`);
+  }
 
   redirect(realAdminPath);
 }
 
 export async function logoutAdmin() {
-  const cookieStore = await cookies();
-  cookieStore.delete(adminCookieName);
+  const supabase = await getSupabaseAuthServerClient();
+
+  if (supabase) {
+    await supabase.auth.signOut();
+  }
+
   redirect(realAdminPath);
 }
 

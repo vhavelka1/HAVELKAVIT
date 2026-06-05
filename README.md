@@ -51,11 +51,11 @@ The Emička quiz reads questions from `quiz_questions`. The admin UI is availabl
 
 Use [supabase/quiz_questions.sql](C:/Users/Vitek/Documents/projekty/havelkavit-web/supabase/quiz_questions.sql) to create the table and basic policies.
 
-The real admin at `/admin` uses an HTTP-only cookie and these environment variables:
+The real admin at `/login/fake` uses Supabase Auth Email/Password with SSR cookies.
+Create the administrator user in Supabase Auth and configure:
 
-- `ADMIN_USERNAME`
-- `ADMIN_PASSWORD`
-- `ADMIN_AUTH_SECRET`
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
 
 Use [supabase/site_admin.sql](C:/Users/Vitek/Documents/projekty/havelkavit-web/supabase/site_admin.sql) to create editable homepage settings and topic columns.
@@ -69,6 +69,7 @@ Copy `.env.example` to `.env.local` for local development:
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
 ```
 
 Set the same variables in Vercel under Project Settings -> Environment Variables.
