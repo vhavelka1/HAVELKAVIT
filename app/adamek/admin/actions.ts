@@ -3,11 +3,10 @@
 import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { isPageAdminAuthenticated } from "@/lib/page-admin";
 import { getSupabaseAdminClient } from "@/lib/site-settings";
-import { isAdminAuthenticated } from "@/lib/supabase-auth";
 
 const adminPath = "/adamek/admin";
-const loginPath = "/login/fake";
 const bucketName = "adamek-memory";
 
 export async function saveMemoryTheme(formData: FormData) {
@@ -106,8 +105,8 @@ export async function deleteThemeImage(formData: FormData) {
 }
 
 async function requireAdmin() {
-  if (!(await isAdminAuthenticated())) {
-    redirect(loginPath);
+  if (!(await isPageAdminAuthenticated("adamek"))) {
+    redirect(adminPath);
   }
 }
 

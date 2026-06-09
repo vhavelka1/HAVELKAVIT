@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { getMemoryThemes } from "@/lib/adamek";
-import { isAdminAuthenticated } from "@/lib/supabase-auth";
-import { logoutAdmin } from "@/app/admin/actions";
+import { isPageAdminAuthenticated } from "@/lib/page-admin";
+import { PageAdminLogin } from "@/components/page-admin-login";
+import { logoutPageAdmin } from "@/app/page-admin-actions";
 import { MemoryThemeAdmin } from "./theme-admin";
 
 export const dynamic = "force-dynamic";
@@ -17,16 +17,23 @@ export default async function AdamekAdminPage({
 }: {
   searchParams?: Promise<{ error?: string; saved?: string }>;
 }) {
-  const isLoggedIn = await isAdminAuthenticated();
-
-  if (!isLoggedIn) {
-    redirect("/login/fake");
-  }
-
-  const [themes, params] = await Promise.all([
-    getMemoryThemes(),
+  const [isLoggedIn, params] = await Promise.all([
+    isPageAdminAuthenticated("adamek"),
     searchParams ?? Promise.resolve({} as { error?: string; saved?: string }),
   ]);
+
+  if (!isLoggedIn) {
+    return (
+      <PageAdminLogin
+        pageId="adamek"
+        title="Administrace Adámka"
+        subtitle="Zadej jednoduché heslo pro správu pexesa."
+        showError={params.error === "login"}
+      />
+    );
+  }
+
+  const themes = await getMemoryThemes();
 
   return (
     <main className="min-h-screen bg-[#06111f] text-white">
@@ -46,7 +53,8 @@ export default async function AdamekAdminPage({
             >
               Zpět na Adámka
             </Link>
-            <form action={logoutAdmin}>
+            <form action={logoutPageAdmin}>
+              <input type="hidden" name="page_id" value="adamek" />
               <button className="h-11 rounded-full border border-white/12 bg-white/8 px-5 text-sm font-semibold text-zinc-200 backdrop-blur-md transition-colors hover:bg-white/14 hover:text-white">
                 Odhlásit
               </button>

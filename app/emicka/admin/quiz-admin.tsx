@@ -3,6 +3,7 @@
 import { ArrowLeft, BarChart3, Edit3, ListChecks, Plus, RefreshCw, Save, Trash2, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { logoutPageAdmin } from "@/app/page-admin-actions";
 import {
   getSupabaseBrowserClient,
   quizTopics,
@@ -239,20 +240,28 @@ export function QuizAdmin() {
             <ArrowLeft className="size-5" aria-hidden="true" />
             <span>Zpět</span>
           </Link>
-          <button
-            type="button"
-            onClick={() => {
-              if (activeTab === "questions") {
-                void loadQuestions();
-              } else {
-                void loadResults();
-              }
-            }}
-            className="inline-flex h-12 items-center gap-2 rounded-full bg-lime-300 px-4 text-sm font-black text-emerald-950"
-          >
-            <RefreshCw className="size-4" aria-hidden="true" />
-            Načíst znovu
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                if (activeTab === "questions") {
+                  void loadQuestions();
+                } else {
+                  void loadResults();
+                }
+              }}
+              className="inline-flex h-12 items-center gap-2 rounded-full bg-lime-300 px-4 text-sm font-black text-emerald-950"
+            >
+              <RefreshCw className="size-4" aria-hidden="true" />
+              Načíst znovu
+            </button>
+            <form action={logoutPageAdmin}>
+              <input type="hidden" name="page_id" value="emicka" />
+              <button className="h-12 rounded-full border border-white/12 bg-white/8 px-4 text-sm font-semibold text-zinc-200 backdrop-blur-md transition-colors hover:bg-white/14 hover:text-white">
+                Odhlásit
+              </button>
+            </form>
+          </div>
         </header>
 
         <div className="mb-6 flex flex-wrap gap-3 rounded-[1.5rem] border border-white/10 bg-white/7 p-2 shadow-xl shadow-black/25 backdrop-blur-xl">

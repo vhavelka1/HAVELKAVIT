@@ -1,4 +1,5 @@
 import { getSectionPosts } from "@/lib/section-posts";
+import { getPageAdminSettings } from "@/lib/page-admin";
 import { getSiteSettings, getSupabaseServerClient } from "@/lib/site-settings";
 import { isAdminAuthenticated } from "@/lib/supabase-auth";
 import { mapTopicRow, topicSeeds } from "@/lib/topics";
@@ -7,6 +8,7 @@ import { loginAdmin, logoutAdmin, saveSiteSettings } from "../../admin/actions";
 import { AdminArea, AdminField, SectionPostForm, TopicForm } from "../../admin/admin-forms";
 import { AdminLists } from "../../admin/admin-lists";
 import type { AdminTopic } from "../../admin/admin-types";
+import { PageLoginForms } from "../../admin/page-login-forms";
 
 export const dynamic = "force-dynamic";
 
@@ -27,10 +29,11 @@ export default async function AdminPage({
     return <AdminLogin showError={params.error === "login"} />;
   }
 
-  const [settings, topics, posts] = await Promise.all([
+  const [settings, topics, posts, pageLogins] = await Promise.all([
     getSiteSettings(),
     getAdminTopics(),
     getSectionPosts(),
+    getPageAdminSettings(),
   ]);
 
   return (
@@ -52,6 +55,7 @@ export default async function AdminPage({
         </header>
 
         <AdminStatus error={params.error} saved={params.saved} />
+        <PageLoginForms settings={pageLogins} />
 
         <section className="mb-8 rounded-[2rem] border border-white/12 bg-zinc-950/78 p-6 shadow-2xl shadow-black/40 backdrop-blur-2xl">
           <p className="font-mono text-xs uppercase tracking-[0.28em] text-pink-200">
@@ -102,6 +106,7 @@ function AdminStatus({ error, saved }: { error?: string; saved?: string }) {
     const messages: Record<string, string> = {
       "supabase-admin-key": "Ukladani potrebuje SUPABASE_SERVICE_ROLE_KEY v .env.local nebo na Vercelu.",
       "upload-image": "Fotku se nepodarilo nahrat do Supabase Storage. Zkontroluj service role key a Storage opravneni.",
+      "page-password": "Heslo stranky se nepodarilo ulozit. Zkontroluj tabulku page_admin_passwords.",
     };
     const message =
       messages[error] ?? "Zmenu se nepodarilo ulozit. Zkontroluj prosim Supabase tabulky a opravneni.";
@@ -114,9 +119,13 @@ function AdminStatus({ error, saved }: { error?: string; saved?: string }) {
   }
 
   if (saved) {
+    const messages: Record<string, string> = {
+      "page-login": "Heslo pro detskou administraci je ulozene.",
+    };
+
     return (
       <div className="mb-8 rounded-3xl border border-teal-200/20 bg-teal-200/10 px-5 py-4 text-sm font-semibold text-teal-50">
-        Ulozeno. Hlavni stranka je obnovena.
+        {messages[saved] ?? "Ulozeno. Hlavni stranka je obnovena."}
       </div>
     );
   }

@@ -4,6 +4,7 @@ import { randomUUID } from "crypto";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { defaultSiteSettings, getSupabaseAdminClient } from "@/lib/site-settings";
+import { savePageAdminPassword, type PageAdminId } from "@/lib/page-admin";
 import { getSupabaseAuthServerClient, isAdminAuthenticated } from "@/lib/supabase-auth";
 
 const realAdminPath = "/login/fake";
@@ -158,6 +159,22 @@ export async function deleteSectionPost(formData: FormData) {
   revalidatePath("/");
   revalidatePath(realAdminPath);
   redirect(`${realAdminPath}?saved=delete-post`);
+}
+
+export async function savePageLoginPassword(formData: FormData) {
+  await requireAdmin();
+  const pageId = String(formData.get("page_id") || "") as PageAdminId;
+  const password = String(formData.get("password") || "");
+  const result = await savePageAdminPassword(pageId, password);
+
+  if (!result.ok) {
+    redirect(`${realAdminPath}?error=${result.error}`);
+  }
+
+  revalidatePath(realAdminPath);
+  revalidatePath("/emicka/admin");
+  revalidatePath("/adamek/admin");
+  redirect(`${realAdminPath}?saved=page-login`);
 }
 
 async function requireAdmin() {
