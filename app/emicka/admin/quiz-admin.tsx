@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Edit3, Plus, RefreshCw, Save, Trash2, X } from "lucide-react";
+import { ArrowLeft, BarChart3, Edit3, ListChecks, Plus, RefreshCw, Save, Trash2, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -9,6 +9,7 @@ import {
   type CorrectOption,
   type QuizDifficulty,
   type QuizQuestionRow,
+  type QuizResultRow,
 } from "@/lib/quiz";
 
 type QuestionForm = {
@@ -37,14 +38,17 @@ const emptyForm: QuestionForm = {
 };
 
 const difficultyOptions: QuizDifficulty[] = ["easy", "medium", "hard"];
+type AdminTab = "questions" | "results";
 
 export function QuizAdmin() {
   const [questions, setQuestions] = useState<QuizQuestionRow[]>([]);
+  const [results, setResults] = useState<QuizResultRow[]>([]);
   const [form, setForm] = useState<QuestionForm>(emptyForm);
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [topicFilter, setTopicFilter] = useState("all");
   const [difficultyFilter, setDifficultyFilter] = useState<QuizDifficulty | "all">("all");
+  const [activeTab, setActiveTab] = useState<AdminTab>("questions");
 
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
 
@@ -94,6 +98,29 @@ export function QuizAdmin() {
     }
 
     setQuestions((data ?? []) as QuizQuestionRow[]);
+    setMessage("");
+  }
+
+  async function loadResults() {
+    if (!supabase) {
+      setMessage("Supabase env vars nejsou nastavenĂ©.");
+      return;
+    }
+
+    setIsLoading(true);
+    const { data, error } = await supabase
+      .from("quiz_results")
+      .select("id, nickname, topic_slug, difficulty, score, total_questions, points_awarded, completed_perfect, answers, created_at")
+      .order("created_at", { ascending: false })
+      .limit(100);
+    setIsLoading(false);
+
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+
+    setResults((data ?? []) as QuizResultRow[]);
     setMessage("");
   }
 
@@ -161,6 +188,29 @@ export function QuizAdmin() {
     await loadQuestions();
   }
 
+  async function deleteResult(id: string | number) {
+    if (!supabase) {
+      setMessage("Supabase env vars nejsou nastavenĂ©.");
+      return;
+    }
+
+    if (!window.confirm("Smazat tenhle výsledek?")) {
+      return;
+    }
+
+    setIsLoading(true);
+    const { error } = await supabase.from("quiz_results").delete().eq("id", id);
+    setIsLoading(false);
+
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+
+    setMessage("Výsledek je smazaný.");
+    await loadResults();
+  }
+
   function editQuestion(question: QuizQuestionRow) {
     setForm({
       id: question.id,
@@ -191,7 +241,13 @@ export function QuizAdmin() {
           </Link>
           <button
             type="button"
-            onClick={() => void loadQuestions()}
+            onClick={() => {
+              if (activeTab === "questions") {
+                void loadQuestions();
+              } else {
+                void loadResults();
+              }
+            }}
             className="inline-flex h-12 items-center gap-2 rounded-full bg-lime-300 px-4 text-sm font-black text-emerald-950"
           >
             <RefreshCw className="size-4" aria-hidden="true" />
@@ -199,6 +255,26 @@ export function QuizAdmin() {
           </button>
         </header>
 
+        <div className="mb-6 flex flex-wrap gap-3 rounded-[1.5rem] border border-white/10 bg-white/7 p-2 shadow-xl shadow-black/25 backdrop-blur-xl">
+          <TabButton
+            active={activeTab === "questions"}
+            icon={<ListChecks className="size-4" aria-hidden="true" />}
+            label="Otázky"
+            onClick={() => setActiveTab("questions")}
+          />
+          <TabButton
+            active={activeTab === "results"}
+            icon={<BarChart3 className="size-4" aria-hidden="true" />}
+            label="Výsledky"
+            onClick={() => {
+              setActiveTab("results");
+              void loadResults();
+            }}
+          />
+        </div>
+
+        {activeTab === "questions" ? (
+          <>
         <section className="mb-8 rounded-[2rem] border border-violet-300/25 bg-slate-950/72 p-5 shadow-2xl shadow-violet-950/30 backdrop-blur-xl sm:p-7">
           <div className="mb-6 flex items-center justify-between gap-4">
             <div>
@@ -455,8 +531,109 @@ export function QuizAdmin() {
             </div>
           ))}
         </section>
+          </>
+        ) : (
+          <ResultsPanel results={results} isLoading={isLoading} onDelete={(id) => void deleteResult(id)} />
+        )}
       </div>
     </main>
+  );
+}
+
+function TabButton({
+  active,
+  icon,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex h-11 items-center gap-2 rounded-2xl px-4 text-sm font-black transition-colors ${
+        active
+          ? "bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white shadow-lg shadow-fuchsia-950/30"
+          : "bg-black/20 text-violet-100 hover:bg-white/10"
+      }`}
+    >
+      {icon}
+      {label}
+    </button>
+  );
+}
+
+function ResultsPanel({
+  results,
+  isLoading,
+  onDelete,
+}: {
+  results: QuizResultRow[];
+  isLoading: boolean;
+  onDelete: (id: string | number) => void;
+}) {
+  return (
+    <section className="rounded-[2rem] border border-white/10 bg-white/7 p-5 shadow-xl shadow-black/25 backdrop-blur-xl sm:p-7">
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="font-mono text-xs uppercase tracking-[0.28em] text-cyan-200">
+            quiz_results
+          </p>
+          <h1 className="mt-2 text-4xl font-black text-white">Výsledky kvízů</h1>
+        </div>
+        <span className="rounded-full border border-lime-300/30 bg-lime-300/12 px-4 py-2 text-sm font-black text-lime-100">
+          {results.length} záznamů
+        </span>
+      </div>
+
+      {results.length === 0 ? (
+        <p className="rounded-2xl border border-white/10 bg-black/20 p-5 text-zinc-300">
+          {isLoading ? "Načítám výsledky..." : "Zatím tu nejsou žádné uložené výsledky."}
+        </p>
+      ) : (
+        <div className="grid gap-3">
+          {results.map((result) => (
+            <article
+              key={result.id}
+              className="rounded-2xl border border-white/10 bg-slate-950/55 p-4"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 text-sm font-bold text-violet-200">
+                    <span className="rounded-full bg-cyan-300 px-3 py-1 text-xs font-black text-cyan-950">
+                      {result.nickname || "Hráč"}
+                    </span>
+                    <span>{topicTitle(result.topic_slug)}</span>
+                    <DifficultyBadge difficulty={result.difficulty ?? "easy"} />
+                    <span className={result.completed_perfect ? "text-lime-300" : "text-amber-200"}>
+                      {result.score}/{result.total_questions}
+                    </span>
+                  </div>
+                  <div className="mt-3 grid gap-2 text-sm leading-6 text-zinc-300 sm:grid-cols-2 lg:grid-cols-4">
+                    <span>Body: {result.points_awarded}</span>
+                    <span>Dokonalý pokus: {result.completed_perfect ? "ano" : "ne"}</span>
+                    <span>{formatResultDate(result.created_at)}</span>
+                    <span>OdpovÄ›di: {answerCount(result.answers)}</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onDelete(result.id)}
+                  className="grid size-10 shrink-0 place-items-center rounded-full bg-rose-400 text-rose-950"
+                  aria-label="Smazat výsledek"
+                >
+                  <Trash2 className="size-4" />
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -489,4 +666,23 @@ function DifficultyBadge({ difficulty }: { difficulty: QuizDifficulty }) {
       {difficulty}
     </span>
   );
+}
+
+function topicTitle(topicSlug: string) {
+  return quizTopics.find((topic) => topic.id === topicSlug)?.title ?? topicSlug;
+}
+
+function formatResultDate(value: string) {
+  if (!value) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat("cs-CZ", {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
+
+function answerCount(value: unknown) {
+  return Array.isArray(value) ? value.length : 0;
 }

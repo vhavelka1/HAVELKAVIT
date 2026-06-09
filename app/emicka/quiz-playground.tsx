@@ -382,7 +382,10 @@ export function EmickaQuizPlayground() {
       );
 
       if (nextScore === 10) {
-        completeQuiz();
+        const pointsAwarded = completeQuiz();
+        void saveQuizResult(nickname, activeTopic, selectedDifficulty, activeQuestions, nextAnswers, nextScore, pointsAwarded);
+      } else {
+        void saveQuizResult(nickname, activeTopic, selectedDifficulty, activeQuestions, nextAnswers, nextScore, 0);
       }
 
       setScreen("result");
@@ -396,11 +399,12 @@ export function EmickaQuizPlayground() {
     const key = quizKey(activeTopic.id, selectedDifficulty);
 
     if (profile.completed.includes(key)) {
-      return;
+      return 0;
     }
 
     const completed = [...profile.completed, key];
-    const points = profile.points + difficultyPoints(selectedDifficulty);
+    const pointsAwarded = difficultyPoints(selectedDifficulty);
+    const points = profile.points + pointsAwarded;
     const badges = calculateBadges(completed);
     const nextProfile = { completed, points, badges };
     const unlockedTopicId = nextUnlockedTopicId(selectedTopicIndex, selectedDifficulty);
@@ -408,6 +412,8 @@ export function EmickaQuizPlayground() {
     setRecentlyUnlockedTopicId(unlockedTopicId);
     setLeaderboard((entries) => prepareLeaderboard(entries, nickname, nextProfile));
     void syncLeaderboardProfile(nickname, nextProfile).then(setLeaderboard);
+
+    return pointsAwarded;
   };
 
   const retryQuiz = () => {
@@ -1362,6 +1368,38 @@ async function syncLeaderboardProfile(nickname: string, profile: PlayerProfile) 
   }
 
   return fetchLeaderboard();
+}
+
+async function saveQuizResult(
+  nickname: string,
+  topic: Topic,
+  difficulty: Difficulty,
+  questions: Question[],
+  selectedAnswers: number[],
+  score: number,
+  pointsAwarded: number,
+) {
+  const supabase = getSupabaseBrowserClient();
+
+  if (!supabase) {
+    return;
+  }
+
+  await supabase.from("quiz_results").insert({
+    nickname: nickname.trim() || "Hráč",
+    topic_slug: topic.id,
+    difficulty,
+    score,
+    total_questions: questions.length,
+    points_awarded: pointsAwarded,
+    completed_perfect: score === questions.length,
+    answers: questions.map((question, index) => ({
+      question_id: question.id,
+      selected_option: answerLetters[selectedAnswers[index]] ?? "",
+      correct_option: answerLetters[question.answer] ?? "",
+      is_correct: selectedAnswers[index] === question.answer,
+    })),
+  });
 }
 
 function prepareLeaderboard(

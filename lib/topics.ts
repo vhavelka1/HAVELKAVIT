@@ -119,6 +119,18 @@ export const topicSeeds: Topic[] = [
     image_url:
       "https://images.unsplash.com/photo-1516627145497-ae6968895b74?auto=format&fit=crop&w=1200&q=80",
   },
+  {
+    id: "adamek",
+    slug: "adamek",
+    title_cs: "Adámek",
+    title_en: "Adamek",
+    description_cs:
+      "Adamův playground pro malé hry, objevování, pexeso a další nápady, které si časem najdou vlastní místo.",
+    description_en:
+      "Adam's playground for small games, discovery, memory cards, and future ideas that deserve their own place.",
+    image_url:
+      "https://images.unsplash.com/photo-1606092195730-5d7b9af1efc5?auto=format&fit=crop&w=1200&q=80",
+  },
 ];
 
 const slugAliases = new Map<string, string>(
@@ -153,7 +165,7 @@ export async function getTopics(): Promise<Topic[]> {
     .map(mapTopicRow)
     .filter((topic): topic is Topic => Boolean(topic));
 
-  return mapped.length > 0 ? mapped : topicSeeds;
+  return mapped.length > 0 ? mergeRequiredSeeds(mapped) : topicSeeds;
 }
 
 export function mapTopicRow(row: SupabaseTopicRow): Topic | undefined {
@@ -201,4 +213,21 @@ export function slugify(value: string) {
     .replace(/&/g, " and ")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
+}
+
+function mergeRequiredSeeds(topics: Topic[]) {
+  const requiredSlugs = ["emicka", "adamek"];
+  const merged = [...topics];
+
+  for (const slug of requiredSlugs) {
+    if (!merged.some((topic) => topic.slug === slug)) {
+      const seed = topicSeeds.find((topic) => topic.slug === slug);
+
+      if (seed) {
+        merged.push({ ...seed, sort_order: merged.length + 1 });
+      }
+    }
+  }
+
+  return merged.sort((a, b) => Number(a.sort_order ?? 0) - Number(b.sort_order ?? 0));
 }

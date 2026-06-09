@@ -16,6 +16,19 @@ export type QuizQuestionRow = {
   sort_order: number;
 };
 
+export type QuizResultRow = {
+  id: string | number;
+  nickname: string;
+  topic_slug: string;
+  difficulty: QuizDifficulty;
+  score: number;
+  total_questions: number;
+  points_awarded: number;
+  completed_perfect: boolean;
+  answers?: unknown;
+  created_at: string;
+};
+
 export type QuizQuestion = {
   id: string;
   question: string;

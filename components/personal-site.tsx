@@ -185,6 +185,7 @@ function NodeNetwork({ topics, language, selectedTopic, onSelect }: NodeNetworkP
       { x: 37, y: 43 },
       { x: 61, y: 48 },
       { x: 49, y: 51 },
+      { x: 84, y: 57 },
     ];
 
     return topics.map((topic, index) => ({
@@ -209,6 +210,9 @@ function NodeNetwork({ topics, language, selectedTopic, onSelect }: NodeNetworkP
     [2, 8],
     [3, 8],
     [6, 8],
+    [1, 9],
+    [2, 9],
+    [7, 9],
   ];
 
   return (
@@ -386,6 +390,14 @@ function TopicPanel({ topic, language, title, posts, onClose }: TopicPanelProps)
           {topic.slug === "emicka" ? (
             <Link
               href="/emicka"
+              className="inline-flex h-12 items-center justify-center rounded-full bg-teal-200 px-6 text-sm font-semibold text-zinc-950 shadow-xl shadow-teal-950/30 transition-colors hover:bg-white"
+            >
+              Prohlížej
+            </Link>
+          ) : null}
+          {topic.slug === "adamek" ? (
+            <Link
+              href="/adamek"
               className="inline-flex h-12 items-center justify-center rounded-full bg-teal-200 px-6 text-sm font-semibold text-zinc-950 shadow-xl shadow-teal-950/30 transition-colors hover:bg-white"
             >
               Prohlížej
