@@ -3,7 +3,7 @@ import { savePageLoginPassword } from "./actions";
 
 export function PageLoginForms({ settings }: { settings: PageAdminSetting[] }) {
   return (
-    <section className="mb-8 rounded-[2rem] border border-white/12 bg-zinc-950/78 p-6 shadow-2xl shadow-black/40 backdrop-blur-2xl">
+    <section id="login-stranek" className="mb-8 rounded-[2rem] border border-white/12 bg-zinc-950/78 p-6 shadow-2xl shadow-black/40 backdrop-blur-2xl">
       <p className="font-mono text-xs uppercase tracking-[0.28em] text-yellow-200">
         login stránek
       </p>

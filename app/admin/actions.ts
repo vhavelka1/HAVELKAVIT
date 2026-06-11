@@ -177,6 +177,74 @@ export async function savePageLoginPassword(formData: FormData) {
   redirect(`${realAdminPath}?saved=page-login`);
 }
 
+export async function saveInvoice(formData: FormData) {
+  await requireAdmin();
+  const supabase = requireSupabase();
+  const items = readInvoiceItems(formData);
+
+  if (items.length === 0) {
+    redirect(`${realAdminPath}?error=invoice-items`);
+  }
+
+  const totalAmount = items.reduce((total, item) => total + item.total_price, 0);
+  const invoicePayload = {
+    invoice_number: readField(formData, "invoice_number", ""),
+    variable_symbol: readField(formData, "variable_symbol", ""),
+    issue_date: readField(formData, "issue_date", ""),
+    due_date: readField(formData, "due_date", ""),
+    taxable_supply_date: readField(formData, "taxable_supply_date", ""),
+    customer_name: readField(formData, "customer_name", ""),
+    customer_address: readField(formData, "customer_address", ""),
+    customer_ico: readField(formData, "customer_ico", ""),
+    note: readField(formData, "note", ""),
+    total_amount: totalAmount,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (
+    !invoicePayload.invoice_number ||
+    !invoicePayload.variable_symbol ||
+    !invoicePayload.issue_date ||
+    !invoicePayload.due_date ||
+    !invoicePayload.taxable_supply_date ||
+    !invoicePayload.customer_name ||
+    !invoicePayload.customer_address
+  ) {
+    redirect(`${realAdminPath}?error=invoice`);
+  }
+
+  const { data: invoice, error } = await supabase
+    .from("invoices")
+    .insert(invoicePayload)
+    .select("id")
+    .single();
+
+  if (error || !invoice) {
+    redirect(`${realAdminPath}?error=invoice`);
+  }
+
+  const invoiceId = String(invoice.id);
+  const { error: itemsError } = await supabase.from("invoice_items").insert(
+    items.map((item, index) => ({
+      invoice_id: invoiceId,
+      description: item.description,
+      quantity: item.quantity,
+      unit: item.unit,
+      unit_price: item.unit_price,
+      total_price: item.total_price,
+      sort_order: index,
+    })),
+  );
+
+  if (itemsError) {
+    await supabase.from("invoices").delete().eq("id", invoiceId);
+    redirect(`${realAdminPath}?error=invoice`);
+  }
+
+  revalidatePath(realAdminPath);
+  redirect(`${realAdminPath}?saved=invoice&invoice=${invoiceId}#fakturace`);
+}
+
 async function requireAdmin() {
   if (!(await isAdminAuthenticated())) {
     redirect(realAdminPath);
@@ -196,6 +264,30 @@ function requireSupabase() {
 function readField(formData: FormData, key: string, fallback: string) {
   const value = String(formData.get(key) || "").trim();
   return value || fallback;
+}
+
+function readInvoiceItems(formData: FormData) {
+  const descriptions = formData.getAll("item_description");
+  const quantities = formData.getAll("item_quantity");
+  const units = formData.getAll("item_unit");
+  const prices = formData.getAll("item_unit_price");
+
+  return descriptions
+    .map((description, index) => {
+      const cleanDescription = String(description || "").trim();
+      const quantity = Number(quantities[index] || 0);
+      const unit = String(units[index] || "ks").trim() || "ks";
+      const unitPrice = Number(prices[index] || 0);
+
+      return {
+        description: cleanDescription,
+        quantity,
+        unit,
+        unit_price: unitPrice,
+        total_price: quantity * unitPrice,
+      };
+    })
+    .filter((item) => item.description && item.quantity > 0 && item.unit_price >= 0);
 }
 
 async function uploadAdminImage(

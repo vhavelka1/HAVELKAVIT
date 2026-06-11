@@ -1,4 +1,5 @@
 import { getSectionPosts } from "@/lib/section-posts";
+import { getInvoice, getInvoices } from "@/lib/invoices";
 import { getPageAdminSettings } from "@/lib/page-admin";
 import { getSiteSettings, getSupabaseServerClient } from "@/lib/site-settings";
 import { isAdminAuthenticated } from "@/lib/supabase-auth";
@@ -8,6 +9,7 @@ import { loginAdmin, logoutAdmin, saveSiteSettings } from "../../admin/actions";
 import { AdminArea, AdminField, SectionPostForm, TopicForm } from "../../admin/admin-forms";
 import { AdminLists } from "../../admin/admin-lists";
 import type { AdminTopic } from "../../admin/admin-types";
+import { InvoiceAdmin } from "../../admin/invoice-admin";
 import { PageLoginForms } from "../../admin/page-login-forms";
 
 export const dynamic = "force-dynamic";
@@ -20,7 +22,7 @@ export const metadata = {
 export default async function AdminPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ error?: string; saved?: string }>;
+  searchParams?: Promise<{ error?: string; saved?: string; invoice?: string }>;
 }) {
   const isLoggedIn = await isAdminAuthenticated();
   const params = searchParams ? await searchParams : {};
@@ -29,11 +31,13 @@ export default async function AdminPage({
     return <AdminLogin showError={params.error === "login"} />;
   }
 
-  const [settings, topics, posts, pageLogins] = await Promise.all([
+  const [settings, topics, posts, pageLogins, invoices, selectedInvoice] = await Promise.all([
     getSiteSettings(),
     getAdminTopics(),
     getSectionPosts(),
     getPageAdminSettings(),
+    getInvoices(),
+    params.invoice ? getInvoice(params.invoice) : Promise.resolve(null),
   ]);
 
   return (
@@ -55,9 +59,21 @@ export default async function AdminPage({
         </header>
 
         <AdminStatus error={params.error} saved={params.saved} />
+        <nav className="mb-8 flex flex-wrap gap-2 rounded-3xl border border-white/10 bg-white/6 p-2 shadow-xl shadow-black/20 backdrop-blur-xl">
+          <a href="#fakturace" className="rounded-full bg-yellow-200 px-4 py-2 text-sm font-bold text-zinc-950">
+            Fakturace
+          </a>
+          <a href="#login-stranek" className="rounded-full bg-white/8 px-4 py-2 text-sm font-semibold text-zinc-200 hover:bg-white/14">
+            Login stránek
+          </a>
+          <a href="#uvodni-texty" className="rounded-full bg-white/8 px-4 py-2 text-sm font-semibold text-zinc-200 hover:bg-white/14">
+            Úvodní texty
+          </a>
+        </nav>
+        <InvoiceAdmin invoices={invoices} selectedInvoice={selectedInvoice} />
         <PageLoginForms settings={pageLogins} />
 
-        <section className="mb-8 rounded-[2rem] border border-white/12 bg-zinc-950/78 p-6 shadow-2xl shadow-black/40 backdrop-blur-2xl">
+        <section id="uvodni-texty" className="mb-8 rounded-[2rem] border border-white/12 bg-zinc-950/78 p-6 shadow-2xl shadow-black/40 backdrop-blur-2xl">
           <p className="font-mono text-xs uppercase tracking-[0.28em] text-pink-200">
             uvodni texty
           </p>
@@ -107,6 +123,8 @@ function AdminStatus({ error, saved }: { error?: string; saved?: string }) {
       "supabase-admin-key": "Ukladani potrebuje SUPABASE_SERVICE_ROLE_KEY v .env.local nebo na Vercelu.",
       "upload-image": "Fotku se nepodarilo nahrat do Supabase Storage. Zkontroluj service role key a Storage opravneni.",
       "page-password": "Heslo stranky se nepodarilo ulozit. Zkontroluj tabulku page_admin_passwords.",
+      invoice: "Fakturu se nepodarilo ulozit. Zkontroluj tabulky invoices a invoice_items.",
+      "invoice-items": "Faktura musi mit alespon jednu platnou polozku.",
     };
     const message =
       messages[error] ?? "Zmenu se nepodarilo ulozit. Zkontroluj prosim Supabase tabulky a opravneni.";
@@ -121,6 +139,7 @@ function AdminStatus({ error, saved }: { error?: string; saved?: string }) {
   if (saved) {
     const messages: Record<string, string> = {
       "page-login": "Heslo pro detskou administraci je ulozene.",
+      invoice: "Faktura je ulozena.",
     };
 
     return (
