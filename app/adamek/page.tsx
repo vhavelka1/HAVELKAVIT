@@ -26,6 +26,12 @@ export default function AdamekPage() {
           >
             Zpět
           </Link>
+          <Link
+            href="/adamek/admin"
+            className="inline-flex h-12 items-center rounded-full border border-yellow-200/30 bg-yellow-200 px-5 text-sm font-black text-slate-950 shadow-xl shadow-yellow-950/20 transition-colors hover:bg-white"
+          >
+            Login
+          </Link>
         </header>
 
         <section className="flex flex-1 flex-col justify-center py-12">
