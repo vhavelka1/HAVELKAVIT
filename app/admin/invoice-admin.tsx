@@ -9,6 +9,8 @@ export function InvoiceAdmin({
   invoices: Invoice[];
   selectedInvoice: Invoice | null;
 }) {
+  const defaultDates = getDefaultInvoiceDates();
+
   return (
     <section
       id="fakturace"
@@ -72,10 +74,11 @@ export function InvoiceAdmin({
         <form action={saveInvoice} className="mt-5 grid gap-4 lg:grid-cols-2">
           <InvoiceField label="Číslo faktury" name="invoice_number" defaultValue={nextInvoiceNumber()} />
           <InvoiceField label="Variabilní symbol" name="variable_symbol" defaultValue={nextVariableSymbol()} />
-          <InvoiceField label="Datum vystavení" name="issue_date" type="date" defaultValue="" />
-          <InvoiceField label="Datum splatnosti" name="due_date" type="date" defaultValue="" />
-          <InvoiceField label="Datum uskutečnění plnění" name="taxable_supply_date" type="date" defaultValue="" />
+          <InvoiceField label="Datum vystavení" name="issue_date" type="date" defaultValue={defaultDates.today} />
+          <InvoiceField label="Datum splatnosti" name="due_date" type="date" defaultValue={defaultDates.tomorrow} />
+          <InvoiceField label="Datum uskutečnění plnění" name="taxable_supply_date" type="date" defaultValue={defaultDates.today} />
           <InvoiceField label="Odběratel IČ" name="customer_ico" defaultValue="" />
+          <InvoiceField label="Odběratel DIČ" name="customer_dic" defaultValue="" />
           <InvoiceField label="Odběratel název" name="customer_name" defaultValue="" wide />
           <label className="grid gap-2 lg:col-span-2">
             <span className="font-mono text-xs uppercase tracking-[0.18em] text-violet-200">
@@ -183,6 +186,7 @@ function InvoiceDetail({ invoice }: { invoice: Invoice | null }) {
         <DetailItem label="Datum splatnosti" value={formatDate(invoice.due_date)} />
         <DetailItem label="DUZP" value={formatDate(invoice.taxable_supply_date)} />
         <DetailItem label="Odběratel IČ" value={invoice.customer_ico || "-"} />
+        <DetailItem label="Odběratel DIČ" value={invoice.customer_dic || "-"} />
         <DetailItem label="Celkem k úhradě" value={formatCurrency(Number(invoice.total_amount))} strong />
       </dl>
 
@@ -249,4 +253,19 @@ function nextInvoiceNumber() {
 function nextVariableSymbol() {
   const now = new Date();
   return `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}001`;
+}
+
+function getDefaultInvoiceDates() {
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+
+  return {
+    today: toDateInputValue(today),
+    tomorrow: toDateInputValue(tomorrow),
+  };
+}
+
+function toDateInputValue(date: Date) {
+  return date.toISOString().slice(0, 10);
 }

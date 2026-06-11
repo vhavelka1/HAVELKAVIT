@@ -196,6 +196,7 @@ export async function saveInvoice(formData: FormData) {
     customer_name: readField(formData, "customer_name", ""),
     customer_address: readField(formData, "customer_address", ""),
     customer_ico: readField(formData, "customer_ico", ""),
+    customer_dic: readField(formData, "customer_dic", ""),
     note: readField(formData, "note", ""),
     total_amount: totalAmount,
     updated_at: new Date().toISOString(),

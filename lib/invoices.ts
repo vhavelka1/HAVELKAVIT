@@ -10,6 +10,7 @@ export type Invoice = {
   customer_name: string;
   customer_address: string;
   customer_ico: string;
+  customer_dic: string;
   note: string;
   total_amount: number;
   created_at?: string;

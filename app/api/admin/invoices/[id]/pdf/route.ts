@@ -85,6 +85,9 @@ function drawSupplierAndCustomer(
   if (invoice.customer_ico) {
     doc.text(`IČ: ${invoice.customer_ico}`, 322, 218, { width: 230 });
   }
+  if (invoice.customer_dic) {
+    doc.text(`DIČ: ${invoice.customer_dic}`, 322, 234, { width: 230 });
+  }
 }
 
 function drawDates(doc: PDFKit.PDFDocument, invoice: NonNullable<Awaited<ReturnType<typeof getInvoice>>>) {

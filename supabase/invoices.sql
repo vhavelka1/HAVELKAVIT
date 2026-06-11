@@ -10,6 +10,7 @@ create table if not exists public.invoices (
   customer_name text not null,
   customer_address text not null,
   customer_ico text,
+  customer_dic text,
   note text,
   total_amount numeric(12, 2) not null default 0,
   created_at timestamptz not null default now(),
@@ -29,6 +30,9 @@ create table if not exists public.invoice_items (
 
 create index if not exists invoices_issue_date_idx on public.invoices(issue_date desc);
 create index if not exists invoice_items_invoice_id_idx on public.invoice_items(invoice_id, sort_order);
+
+alter table public.invoices
+  add column if not exists customer_dic text;
 
 alter table public.invoices enable row level security;
 alter table public.invoice_items enable row level security;
