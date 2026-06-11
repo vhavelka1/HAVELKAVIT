@@ -10,6 +10,7 @@ export function InvoiceAdmin({
   selectedInvoice: Invoice | null;
 }) {
   const defaultDates = getDefaultInvoiceDates();
+  const defaultIdentifiers = getNextInvoiceIdentifiers(invoices);
 
   return (
     <section
@@ -72,8 +73,8 @@ export function InvoiceAdmin({
           {supplier.vatNote}
         </p>
         <form action={saveInvoice} className="mt-5 grid gap-4 lg:grid-cols-2">
-          <InvoiceField label="Číslo faktury" name="invoice_number" defaultValue={nextInvoiceNumber()} />
-          <InvoiceField label="Variabilní symbol" name="variable_symbol" defaultValue={nextVariableSymbol()} />
+          <InvoiceField label="Číslo faktury" name="invoice_number" defaultValue={defaultIdentifiers.invoiceNumber} />
+          <InvoiceField label="Variabilní symbol" name="variable_symbol" defaultValue={defaultIdentifiers.variableSymbol} />
           <InvoiceField label="Datum vystavení" name="issue_date" type="date" defaultValue={defaultDates.today} />
           <InvoiceField label="Datum splatnosti" name="due_date" type="date" defaultValue={defaultDates.tomorrow} />
           <InvoiceField label="Datum uskutečnění plnění" name="taxable_supply_date" type="date" defaultValue={defaultDates.today} />
@@ -245,14 +246,46 @@ function InvoiceField({
   );
 }
 
-function nextInvoiceNumber() {
+function getNextInvoiceIdentifiers(invoices: Invoice[]) {
   const now = new Date();
-  return `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}-001`;
+  const datePrefix = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
+  const sequenceText = String(getNextInvoiceSequence(invoices)).padStart(3, "0");
+
+  return {
+    invoiceNumber: `${datePrefix}-${sequenceText}`,
+    variableSymbol: `${datePrefix}${sequenceText}`,
+  };
 }
 
-function nextVariableSymbol() {
-  const now = new Date();
-  return `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}001`;
+function getNextInvoiceSequence(invoices: Invoice[]) {
+  const highestSequence = invoices.reduce((highest, invoice) => {
+    const invoiceSequence = extractTrailingSequence(invoice.invoice_number);
+    const variableSequence = extractTrailingSequence(invoice.variable_symbol);
+
+    return Math.max(highest, invoiceSequence, variableSequence);
+  }, 0);
+
+  return highestSequence + 1;
+}
+
+function extractTrailingSequence(value: string) {
+  const invoiceNumberMatch = value.match(/-(\d+)$/);
+
+  if (invoiceNumberMatch) {
+    const sequence = Number(invoiceNumberMatch[1]);
+    return Number.isFinite(sequence) ? sequence : 0;
+  }
+
+  const variableSymbolMatch = value.match(/^\d{8}(\d+)$/);
+
+  if (variableSymbolMatch) {
+    const sequence = Number(variableSymbolMatch[1]);
+    return Number.isFinite(sequence) ? sequence : 0;
+  }
+
+  const fallbackMatch = value.match(/(\d+)$/);
+  const sequence = Number(fallbackMatch?.[1] ?? 0);
+  return Number.isFinite(sequence) ? sequence : 0;
 }
 
 function getDefaultInvoiceDates() {
