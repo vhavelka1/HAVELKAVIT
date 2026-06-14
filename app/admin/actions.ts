@@ -6,9 +6,20 @@ import { revalidatePath } from "next/cache";
 import { defaultSiteSettings, getSupabaseAdminClient } from "@/lib/site-settings";
 import { savePageAdminPassword, type PageAdminId } from "@/lib/page-admin";
 import { getSupabaseAuthServerClient, isAdminAuthenticated } from "@/lib/supabase-auth";
+import {
+  expenseDocumentsBucket,
+  isExpenseCategory,
+} from "@/lib/tax-evidence";
 
 const realAdminPath = "/login/fake";
 const adminImagesBucket = "admin-images";
+const expenseDocumentMimeTypes = [
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+];
 
 export async function loginAdmin(formData: FormData) {
   const email = String(formData.get("email") || "").trim();
@@ -246,6 +257,42 @@ export async function saveInvoice(formData: FormData) {
   redirect(`${realAdminPath}?saved=invoice&invoice=${invoiceId}#fakturace`);
 }
 
+export async function saveExpense(formData: FormData) {
+  await requireAdmin();
+  const supabase = requireSupabase();
+  const category = readField(formData, "category", "Ostatní");
+  const amount = Number(formData.get("amount") || 0);
+  const expenseDate = readField(formData, "expense_date", "");
+  const title = readField(formData, "title", "");
+  const year = expenseDate ? new Date(expenseDate).getFullYear() : new Date().getFullYear();
+
+  if (!expenseDate || !title || !Number.isFinite(amount) || amount < 0 || !isExpenseCategory(category)) {
+    redirect(`${realAdminPath}?error=expense#danova-evidence`);
+  }
+
+  const document = await uploadExpenseDocument(formData, supabase, year);
+
+  const { error } = await supabase.from("expenses").insert({
+    expense_date: expenseDate,
+    title,
+    supplier: readField(formData, "supplier", ""),
+    amount,
+    category,
+    note: readField(formData, "note", ""),
+    document_path: document.path,
+    document_name: document.name,
+    document_mime_type: document.mimeType,
+    updated_at: new Date().toISOString(),
+  });
+
+  if (error) {
+    redirect(`${realAdminPath}?error=expense#danova-evidence`);
+  }
+
+  revalidatePath(realAdminPath);
+  redirect(`${realAdminPath}?saved=expense&taxYear=${year}#danova-evidence`);
+}
+
 async function requireAdmin() {
   if (!(await isAdminAuthenticated())) {
     redirect(realAdminPath);
@@ -330,6 +377,60 @@ async function uploadAdminImage(
   return data.publicUrl;
 }
 
+async function uploadExpenseDocument(
+  formData: FormData,
+  supabase: NonNullable<ReturnType<typeof getSupabaseAdminClient>>,
+  year: number,
+) {
+  const file = formData.get("document_file");
+
+  if (!(file instanceof File) || file.size === 0) {
+    return { path: "", name: "", mimeType: "" };
+  }
+
+  if (!expenseDocumentMimeTypes.includes(file.type)) {
+    redirect(`${realAdminPath}?error=expense-document#danova-evidence`);
+  }
+
+  const bucketReady = await ensureExpenseDocumentsBucket(supabase);
+
+  if (!bucketReady) {
+    redirect(`${realAdminPath}?error=expense-document#danova-evidence`);
+  }
+
+  const extension = extensionFromFile(file);
+  const path = `expenses/${year}/${Date.now()}-${randomUUID()}${extension}`;
+  const bytes = Buffer.from(await file.arrayBuffer());
+  const { error } = await supabase.storage.from(expenseDocumentsBucket).upload(path, bytes, {
+    contentType: file.type,
+    upsert: false,
+  });
+
+  if (error) {
+    redirect(`${realAdminPath}?error=expense-document#danova-evidence`);
+  }
+
+  return { path, name: file.name, mimeType: file.type };
+}
+
+async function ensureExpenseDocumentsBucket(
+  supabase: NonNullable<ReturnType<typeof getSupabaseAdminClient>>,
+) {
+  const { error: getError } = await supabase.storage.getBucket(expenseDocumentsBucket);
+
+  if (!getError) {
+    return true;
+  }
+
+  const { error: createError } = await supabase.storage.createBucket(expenseDocumentsBucket, {
+    public: false,
+    fileSizeLimit: "10MB",
+    allowedMimeTypes: expenseDocumentMimeTypes,
+  });
+
+  return !createError;
+}
+
 async function ensureAdminImagesBucket(
   supabase: NonNullable<ReturnType<typeof getSupabaseAdminClient>>,
 ) {
@@ -359,6 +460,7 @@ function extensionFromFile(file: File) {
   if (file.type === "image/webp") return ".webp";
   if (file.type === "image/gif") return ".gif";
   if (file.type === "image/avif") return ".avif";
+  if (file.type === "application/pdf") return ".pdf";
 
   return ".jpg";
 }

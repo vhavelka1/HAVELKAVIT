@@ -3,6 +3,12 @@ import { getInvoice, getInvoices } from "@/lib/invoices";
 import { getPageAdminSettings } from "@/lib/page-admin";
 import { getSiteSettings, getSupabaseServerClient } from "@/lib/site-settings";
 import { isAdminAuthenticated } from "@/lib/supabase-auth";
+import {
+  getAvailableTaxYears,
+  getExpenses,
+  getTaxEvidenceReport,
+  normalizeTaxYear,
+} from "@/lib/tax-evidence";
 import { mapTopicRow, topicSeeds } from "@/lib/topics";
 import Link from "next/link";
 import { loginAdmin, logoutAdmin, saveSiteSettings } from "../../admin/actions";
@@ -11,6 +17,7 @@ import { AdminLists } from "../../admin/admin-lists";
 import type { AdminTopic } from "../../admin/admin-types";
 import { InvoiceAdmin } from "../../admin/invoice-admin";
 import { PageLoginForms } from "../../admin/page-login-forms";
+import { TaxEvidenceAdmin } from "../../admin/tax-evidence-admin";
 
 export const dynamic = "force-dynamic";
 
@@ -22,23 +29,28 @@ export const metadata = {
 export default async function AdminPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ error?: string; saved?: string; invoice?: string }>;
+  searchParams?: Promise<{ error?: string; saved?: string; invoice?: string; taxYear?: string }>;
 }) {
   const isLoggedIn = await isAdminAuthenticated();
   const params = searchParams ? await searchParams : {};
+  const taxYear = normalizeTaxYear(params.taxYear);
 
   if (!isLoggedIn) {
     return <AdminLogin showError={params.error === "login"} />;
   }
 
-  const [settings, topics, posts, pageLogins, invoices, selectedInvoice] = await Promise.all([
-    getSiteSettings(),
-    getAdminTopics(),
-    getSectionPosts(),
-    getPageAdminSettings(),
-    getInvoices(),
-    params.invoice ? getInvoice(params.invoice) : Promise.resolve(null),
-  ]);
+  const [settings, topics, posts, pageLogins, invoices, selectedInvoice, taxReport, allExpenses] =
+    await Promise.all([
+      getSiteSettings(),
+      getAdminTopics(),
+      getSectionPosts(),
+      getPageAdminSettings(),
+      getInvoices(),
+      params.invoice ? getInvoice(params.invoice) : Promise.resolve(null),
+      getTaxEvidenceReport(taxYear),
+      getExpenses(),
+    ]);
+  const taxYears = await getAvailableTaxYears(invoices, allExpenses);
 
   return (
     <main className="min-h-screen bg-[#050507] text-white">
@@ -63,6 +75,9 @@ export default async function AdminPage({
           <a href="#fakturace" className="rounded-full bg-yellow-200 px-4 py-2 text-sm font-bold text-zinc-950">
             Fakturace
           </a>
+          <a href="#danova-evidence" className="rounded-full bg-white/8 px-4 py-2 text-sm font-semibold text-zinc-200 hover:bg-white/14">
+            Daňová evidence
+          </a>
           <a href="#login-stranek" className="rounded-full bg-white/8 px-4 py-2 text-sm font-semibold text-zinc-200 hover:bg-white/14">
             Login stránek
           </a>
@@ -71,6 +86,7 @@ export default async function AdminPage({
           </a>
         </nav>
         <InvoiceAdmin invoices={invoices} selectedInvoice={selectedInvoice} />
+        <TaxEvidenceAdmin report={taxReport} years={taxYears} />
         <PageLoginForms settings={pageLogins} />
 
         <section id="uvodni-texty" className="mb-8 rounded-[2rem] border border-white/12 bg-zinc-950/78 p-6 shadow-2xl shadow-black/40 backdrop-blur-2xl">
@@ -125,6 +141,8 @@ function AdminStatus({ error, saved }: { error?: string; saved?: string }) {
       "page-password": "Heslo stranky se nepodarilo ulozit. Zkontroluj tabulku page_admin_passwords.",
       invoice: "Fakturu se nepodarilo ulozit. Zkontroluj tabulky invoices a invoice_items.",
       "invoice-items": "Faktura musi mit alespon jednu platnou polozku.",
+      expense: "Vydaj se nepodarilo ulozit. Zkontroluj tabulku expenses.",
+      "expense-document": "Doklad se nepodarilo nahrat. Povolen je PDF nebo obrazek do 10 MB.",
     };
     const message =
       messages[error] ?? "Zmenu se nepodarilo ulozit. Zkontroluj prosim Supabase tabulky a opravneni.";
@@ -140,6 +158,7 @@ function AdminStatus({ error, saved }: { error?: string; saved?: string }) {
     const messages: Record<string, string> = {
       "page-login": "Heslo pro detskou administraci je ulozene.",
       invoice: "Faktura je ulozena.",
+      expense: "Vydaj je ulozeny.",
     };
 
     return (
