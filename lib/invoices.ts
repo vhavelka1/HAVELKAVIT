@@ -1,3 +1,4 @@
+import { createHmac, timingSafeEqual } from "crypto";
 import { getSupabaseAdminClient } from "@/lib/site-settings";
 
 export type Invoice = {
@@ -101,4 +102,28 @@ export function formatDate(value: string) {
   }
 
   return new Intl.DateTimeFormat("cs-CZ").format(new Date(value));
+}
+
+export function createInvoiceDownloadToken(invoiceId: string) {
+  return createHmac("sha256", invoiceTokenSecret()).update(invoiceId).digest("hex");
+}
+
+export function verifyInvoiceDownloadToken(invoiceId: string, token: string) {
+  if (!invoiceId || !token) {
+    return false;
+  }
+
+  const expected = Buffer.from(createInvoiceDownloadToken(invoiceId), "hex");
+  const actual = Buffer.from(token, "hex");
+
+  return expected.length === actual.length && timingSafeEqual(expected, actual);
+}
+
+function invoiceTokenSecret() {
+  return (
+    process.env.INVOICE_DOWNLOAD_SECRET ||
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    "local-invoice-download-secret"
+  );
 }

@@ -1,6 +1,15 @@
 import Link from "next/link";
-import { formatCurrency, formatDate, supplier, type Invoice } from "@/lib/invoices";
+import Image from "next/image";
+import {
+  createInvoiceDownloadToken,
+  formatCurrency,
+  formatDate,
+  supplier,
+  type Invoice,
+} from "@/lib/invoices";
 import { saveInvoice } from "./actions";
+
+const paymentIban = "CZ2708000000002809697083";
 
 export function InvoiceAdmin({
   invoices,
@@ -73,11 +82,34 @@ export function InvoiceAdmin({
           {supplier.vatNote}
         </p>
         <form action={saveInvoice} className="mt-5 grid gap-4 lg:grid-cols-2">
-          <InvoiceField label="Číslo faktury" name="invoice_number" defaultValue={defaultIdentifiers.invoiceNumber} />
-          <InvoiceField label="Variabilní symbol" name="variable_symbol" defaultValue={defaultIdentifiers.variableSymbol} />
-          <InvoiceField label="Datum vystavení" name="issue_date" type="date" defaultValue={defaultDates.today} />
-          <InvoiceField label="Datum splatnosti" name="due_date" type="date" defaultValue={defaultDates.tomorrow} />
-          <InvoiceField label="Datum uskutečnění plnění" name="taxable_supply_date" type="date" defaultValue={defaultDates.today} />
+          <InvoiceField
+            label="Číslo faktury"
+            name="invoice_number"
+            defaultValue={defaultIdentifiers.invoiceNumber}
+          />
+          <InvoiceField
+            label="Variabilní symbol"
+            name="variable_symbol"
+            defaultValue={defaultIdentifiers.variableSymbol}
+          />
+          <InvoiceField
+            label="Datum vystavení"
+            name="issue_date"
+            type="date"
+            defaultValue={defaultDates.today}
+          />
+          <InvoiceField
+            label="Datum splatnosti"
+            name="due_date"
+            type="date"
+            defaultValue={defaultDates.tomorrow}
+          />
+          <InvoiceField
+            label="Datum uskutečnění plnění"
+            name="taxable_supply_date"
+            type="date"
+            defaultValue={defaultDates.today}
+          />
           <InvoiceField label="Odběratel IČ" name="customer_ico" defaultValue="" />
           <InvoiceField label="Odběratel DIČ" name="customer_dic" defaultValue="" />
           <InvoiceField label="Odběratel název" name="customer_name" defaultValue="" wide />
@@ -163,6 +195,10 @@ function InvoiceDetail({ invoice }: { invoice: Invoice | null }) {
     );
   }
 
+  const downloadToken = createInvoiceDownloadToken(invoice.id);
+  const bankVariableSymbol = paymentVariableSymbol(invoice.variable_symbol);
+  const qrPayload = paymentQrPayload(invoice);
+
   return (
     <div className="rounded-3xl border border-white/10 bg-white/6 p-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -174,53 +210,118 @@ function InvoiceDetail({ invoice }: { invoice: Invoice | null }) {
           <p className="mt-2 text-sm text-zinc-400">{invoice.customer_name}</p>
         </div>
         <a
-          href={`/api/admin/invoices/${invoice.id}/pdf`}
+          href={`/api/admin/invoices/${invoice.id}/pdf?token=${downloadToken}`}
           className="inline-flex h-11 items-center rounded-full bg-yellow-200 px-5 text-sm font-bold text-zinc-950 transition-colors hover:bg-white"
         >
           Stáhnout PDF
         </a>
       </div>
 
-      <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-2">
-        <DetailItem label="Variabilní symbol" value={invoice.variable_symbol} />
-        <DetailItem label="Datum vystavení" value={formatDate(invoice.issue_date)} />
-        <DetailItem label="Datum splatnosti" value={formatDate(invoice.due_date)} />
-        <DetailItem label="DUZP" value={formatDate(invoice.taxable_supply_date)} />
-        <DetailItem label="Odběratel IČ" value={invoice.customer_ico || "-"} />
-        <DetailItem label="Odběratel DIČ" value={invoice.customer_dic || "-"} />
-        <DetailItem label="Celkem k úhradě" value={formatCurrency(Number(invoice.total_amount))} strong />
-      </dl>
-
-      <div className="mt-5 overflow-hidden rounded-2xl border border-white/10">
-        {invoice.items.map((item) => (
-          <div key={item.id ?? item.description} className="grid gap-2 border-b border-white/10 p-3 text-sm last:border-b-0 sm:grid-cols-[1fr_auto]">
-            <span className="font-semibold text-white">{item.description}</span>
-            <span className="text-zinc-300">
-              {item.quantity} {item.unit} × {formatCurrency(item.unit_price)} ={" "}
-              {formatCurrency(item.total_price)}
-            </span>
+      <div className="mt-6 overflow-hidden rounded-3xl border border-white/10 bg-white p-5 text-zinc-950 shadow-2xl shadow-black/30">
+        <div className="flex items-start justify-between gap-4 border-b-4 border-yellow-300 pb-5">
+          <Image
+            src="/havelkavit-logo.png"
+            alt="HAVELKAVIT"
+            width={144}
+            height={93}
+            className="h-auto w-36 object-contain"
+          />
+          <div className="text-right">
+            <p className="text-3xl font-black tracking-tight">FAKTURA</p>
+            <p className="mt-1 text-xs text-zinc-500">Daňový doklad</p>
           </div>
-        ))}
+        </div>
+
+        <div className="mt-6 grid gap-6 text-sm sm:grid-cols-2">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-zinc-500">
+              Dodavatel
+            </p>
+            <p className="mt-3 font-bold">{supplier.name}</p>
+            <p className="mt-1 whitespace-pre-line text-zinc-600">{supplier.address.join("\n")}</p>
+            <p className="mt-2 text-zinc-600">IČ: {supplier.ico}</p>
+            <p className="text-zinc-600">{supplier.vatNote}</p>
+            <p className="text-zinc-600">Účet: {supplier.bankAccount}</p>
+          </div>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-zinc-500">
+              Odběratel
+            </p>
+            <p className="mt-3 font-bold">{invoice.customer_name}</p>
+            <p className="mt-1 whitespace-pre-line text-zinc-600">{invoice.customer_address}</p>
+            <p className="mt-2 text-zinc-600">IČ: {invoice.customer_ico || "-"}</p>
+            <p className="text-zinc-600">DIČ: {invoice.customer_dic || "-"}</p>
+          </div>
+        </div>
+
+        <dl className="mt-6 grid gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 p-4 text-xs sm:grid-cols-4">
+          <PreviewMeta label="Číslo faktury" value={invoice.invoice_number} />
+          <PreviewMeta label="Variabilní symbol" value={bankVariableSymbol} />
+          <PreviewMeta label="Vystavení" value={formatDate(invoice.issue_date)} />
+          <PreviewMeta label="Splatnost" value={formatDate(invoice.due_date)} />
+          <PreviewMeta label="DUZP" value={formatDate(invoice.taxable_supply_date)} wide />
+        </dl>
+
+        <div className="mt-6 overflow-x-auto rounded-2xl border border-zinc-200 text-sm">
+          <div className="grid min-w-[520px] grid-cols-[1fr_70px_92px_96px] bg-zinc-950 px-4 py-3 text-xs font-bold uppercase tracking-[0.12em] text-white">
+            <span>Položka</span>
+            <span className="text-right">Počet</span>
+            <span className="text-right">Cena/ks</span>
+            <span className="text-right">Celkem</span>
+          </div>
+          {invoice.items.map((item) => (
+            <div
+              key={item.id ?? item.description}
+              className="grid min-w-[520px] grid-cols-[1fr_70px_92px_96px] gap-2 border-b border-zinc-100 px-4 py-3 last:border-b-0"
+            >
+              <span className="font-semibold">{item.description}</span>
+              <span className="text-right text-zinc-600">
+                {item.quantity} {item.unit}
+              </span>
+              <span className="text-right text-zinc-600">{formatCurrency(item.unit_price)}</span>
+              <span className="text-right font-semibold">{formatCurrency(item.total_price)}</span>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-5 flex flex-wrap items-start justify-between gap-4">
+          <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-600">
+            <p className="font-bold text-zinc-950">QR platba</p>
+            <p className="mt-1">Naskenujte v aplikaci vaší banky.</p>
+            <p className="mt-2">Účet: {supplier.bankAccount}</p>
+            <p>VS: {bankVariableSymbol}</p>
+            <p className="mt-3 break-all font-mono text-[10px] leading-4 text-zinc-500">
+              QR Payload: {qrPayload}
+            </p>
+          </div>
+          <div className="min-w-56 rounded-2xl bg-yellow-300 p-5 text-right">
+            <p className="text-xs font-bold uppercase tracking-[0.16em]">Celkem k úhradě</p>
+            <p className="mt-1 text-2xl font-black">{formatCurrency(Number(invoice.total_amount))}</p>
+          </div>
+        </div>
+
+        <div className="mt-6 flex items-center justify-between border-t border-zinc-200 pt-4 text-xs text-zinc-500">
+          <span>Děkujeme za spolupráci.</span>
+          <span>havelkavit.cz</span>
+        </div>
       </div>
     </div>
   );
 }
 
-function DetailItem({
+function PreviewMeta({
   label,
   value,
-  strong,
+  wide,
 }: {
   label: string;
   value: string;
-  strong?: boolean;
+  wide?: boolean;
 }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
-      <dt className="text-xs uppercase tracking-[0.16em] text-zinc-500">{label}</dt>
-      <dd className={`mt-1 ${strong ? "text-xl font-black text-yellow-100" : "font-semibold text-white"}`}>
-        {value}
-      </dd>
+    <div className={wide ? "sm:col-span-2" : ""}>
+      <dt className="font-bold uppercase tracking-[0.12em] text-zinc-500">{label}</dt>
+      <dd className="mt-1 font-semibold text-zinc-950">{value}</dd>
     </div>
   );
 }
@@ -250,10 +351,11 @@ function getNextInvoiceIdentifiers(invoices: Invoice[]) {
   const now = new Date();
   const datePrefix = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
   const sequenceText = String(getNextInvoiceSequence(invoices)).padStart(3, "0");
+  const variableSequenceText = String(getNextInvoiceSequence(invoices)).padStart(2, "0").slice(-2);
 
   return {
     invoiceNumber: `${datePrefix}-${sequenceText}`,
-    variableSymbol: `${datePrefix}${sequenceText}`,
+    variableSymbol: `${datePrefix}${variableSequenceText}`,
   };
 }
 
@@ -286,6 +388,39 @@ function extractTrailingSequence(value: string) {
   const fallbackMatch = value.match(/(\d+)$/);
   const sequence = Number(fallbackMatch?.[1] ?? 0);
   return Number.isFinite(sequence) ? sequence : 0;
+}
+
+function paymentVariableSymbol(value: string) {
+  const digits = value.replace(/\D/g, "");
+
+  if (digits.length <= 10) {
+    return digits;
+  }
+
+  const dateAndSequence = digits.match(/^(\d{8})(\d+)$/);
+
+  if (dateAndSequence) {
+    return `${dateAndSequence[1]}${dateAndSequence[2].slice(-2)}`;
+  }
+
+  return digits.slice(0, 10);
+}
+
+function paymentQrPayload(invoice: Invoice) {
+  const amount = Number(invoice.total_amount).toFixed(2);
+  const variableSymbol = paymentVariableSymbol(invoice.variable_symbol);
+
+  return [
+    "SPD",
+    "1.0",
+    `ACC:${paymentIban}`,
+    `AM:${amount}`,
+    "CC:CZK",
+    "MSG:Faktura",
+    "RN:VÍT HAVELKA",
+    `X-VS:${variableSymbol}`,
+    "",
+  ].join("*");
 }
 
 function getDefaultInvoiceDates() {
