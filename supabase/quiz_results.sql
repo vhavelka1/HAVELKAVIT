@@ -7,9 +7,13 @@ create table if not exists public.quiz_results (
   total_questions integer not null default 10,
   points_awarded integer not null default 0,
   completed_perfect boolean not null default false,
+  elapsed_ms integer,
   answers jsonb not null default '[]'::jsonb,
   created_at timestamptz not null default now()
 );
+
+alter table public.quiz_results
+  add column if not exists elapsed_ms integer;
 
 create index if not exists quiz_results_created_at_idx
   on public.quiz_results (created_at desc);
@@ -20,10 +24,14 @@ create index if not exists quiz_results_nickname_idx
 create index if not exists quiz_results_topic_difficulty_idx
   on public.quiz_results (topic_slug, difficulty);
 
+create index if not exists quiz_results_time_idx
+  on public.quiz_results (topic_slug, difficulty, score desc, elapsed_ms asc, created_at desc);
+
 alter table public.quiz_results enable row level security;
 
 grant usage on schema public to anon, authenticated;
 grant select, insert, delete on public.quiz_results to anon, authenticated;
+grant all on public.quiz_results to service_role;
 grant usage, select on sequence public.quiz_results_id_seq to anon, authenticated;
 
 drop policy if exists "Allow public read quiz results" on public.quiz_results;

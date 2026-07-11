@@ -1,4 +1,4 @@
-import { getMemoryThemes } from "@/lib/adamek";
+import { getMemoryResults, getMemoryThemes } from "@/lib/adamek";
 import { MemoryGame } from "./memory-game";
 
 export const dynamic = "force-dynamic";
@@ -9,7 +9,7 @@ export const metadata = {
 };
 
 export default async function AdamekPexesoPage() {
-  const themes = await getMemoryThemes();
+  const [themes, initialResults] = await Promise.all([getMemoryThemes(), getMemoryResults()]);
 
-  return <MemoryGame themes={themes} />;
+  return <MemoryGame themes={themes} initialResults={initialResults} />;
 }

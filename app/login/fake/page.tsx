@@ -1,6 +1,7 @@
 import { getSectionPosts } from "@/lib/section-posts";
 import { getInvoice, getInvoices } from "@/lib/invoices";
 import { getPageAdminSettings } from "@/lib/page-admin";
+import { getPhotoCategories, getPhotoImages } from "@/lib/photo-categories";
 import { getSiteSettings, getSupabaseServerClient } from "@/lib/site-settings";
 import { isAdminAuthenticated } from "@/lib/supabase-auth";
 import {
@@ -9,7 +10,7 @@ import {
   getTaxEvidenceReport,
   normalizeTaxYear,
 } from "@/lib/tax-evidence";
-import { mapTopicRow, topicSeeds } from "@/lib/topics";
+import { mapTopicRow, mergeRequiredSeeds, topicSeedsWithOrder } from "@/lib/topics";
 import Link from "next/link";
 import { loginAdmin, logoutAdmin, saveSiteSettings } from "../../admin/actions";
 import { AdminArea, AdminField, SectionPostForm, TopicForm } from "../../admin/admin-forms";
@@ -17,6 +18,7 @@ import { AdminLists } from "../../admin/admin-lists";
 import type { AdminTopic } from "../../admin/admin-types";
 import { InvoiceAdmin } from "../../admin/invoice-admin";
 import { PageLoginForms } from "../../admin/page-login-forms";
+import { PhotoCategoryAdmin } from "../../admin/photo-category-admin";
 import { TaxEvidenceAdmin } from "../../admin/tax-evidence-admin";
 
 export const dynamic = "force-dynamic";
@@ -39,12 +41,25 @@ export default async function AdminPage({
     return <AdminLogin showError={params.error === "login"} />;
   }
 
-  const [settings, topics, posts, pageLogins, invoices, selectedInvoice, taxReport, allExpenses] =
+  const [
+    settings,
+    topics,
+    posts,
+    pageLogins,
+    photoCategories,
+    photoImages,
+    invoices,
+    selectedInvoice,
+    taxReport,
+    allExpenses,
+  ] =
     await Promise.all([
       getSiteSettings(),
       getAdminTopics(),
       getSectionPosts(),
       getPageAdminSettings(),
+      getPhotoCategories(),
+      getPhotoImages(),
       getInvoices(),
       params.invoice ? getInvoice(params.invoice) : Promise.resolve(null),
       getTaxEvidenceReport(taxYear),
@@ -63,11 +78,19 @@ export default async function AdminPage({
             </p>
             <h1 className="mt-2 text-4xl font-semibold tracking-tight">Skutecna administrace</h1>
           </div>
-          <form action={logoutAdmin}>
-            <button className="h-11 rounded-full border border-white/12 bg-white/8 px-5 text-sm font-semibold text-zinc-200 backdrop-blur-md transition-colors hover:bg-white/14 hover:text-white">
-              Odhlasit
-            </button>
-          </form>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href="/"
+              className="inline-flex h-11 items-center rounded-full border border-white/12 bg-white/8 px-5 text-sm font-semibold text-zinc-200 backdrop-blur-md transition-colors hover:bg-white/14 hover:text-white"
+            >
+              Zpet home
+            </Link>
+            <form action={logoutAdmin}>
+              <button className="h-11 rounded-full border border-white/12 bg-white/8 px-5 text-sm font-semibold text-zinc-200 backdrop-blur-md transition-colors hover:bg-white/14 hover:text-white">
+                Odhlasit
+              </button>
+            </form>
+          </div>
         </header>
 
         <AdminStatus error={params.error} saved={params.saved} />
@@ -81,6 +104,9 @@ export default async function AdminPage({
           <a href="#login-stranek" className="rounded-full bg-white/8 px-4 py-2 text-sm font-semibold text-zinc-200 hover:bg-white/14">
             Login stránek
           </a>
+          <a href="#fotografie-kategorie" className="rounded-full bg-white/8 px-4 py-2 text-sm font-semibold text-zinc-200 hover:bg-white/14">
+            Fotografie - kategorie
+          </a>
           <a href="#uvodni-texty" className="rounded-full bg-white/8 px-4 py-2 text-sm font-semibold text-zinc-200 hover:bg-white/14">
             Úvodní texty
           </a>
@@ -88,6 +114,7 @@ export default async function AdminPage({
         <InvoiceAdmin invoices={invoices} selectedInvoice={selectedInvoice} />
         <TaxEvidenceAdmin report={taxReport} years={taxYears} />
         <PageLoginForms settings={pageLogins} />
+        <PhotoCategoryAdmin categories={photoCategories} images={photoImages} />
 
         <section id="uvodni-texty" className="mb-8 rounded-[2rem] border border-white/12 bg-zinc-950/78 p-6 shadow-2xl shadow-black/40 backdrop-blur-2xl">
           <p className="font-mono text-xs uppercase tracking-[0.28em] text-pink-200">
@@ -143,6 +170,10 @@ function AdminStatus({ error, saved }: { error?: string; saved?: string }) {
       "invoice-items": "Faktura musi mit alespon jednu platnou polozku.",
       expense: "Vydaj se nepodarilo ulozit. Zkontroluj tabulku expenses.",
       "expense-document": "Doklad se nepodarilo nahrat. Povolen je PDF nebo obrazek do 10 MB.",
+      "photo-category": "Fotografickou kategorii se nepodarilo ulozit. Zkontroluj tabulku photo_categories.",
+      "photo-image": "Fotku se nepodarilo ulozit. Zkontroluj tabulku photo_images.",
+      "photo-image-table": "Chybi tabulka photo_images. Spust v Supabase SQL soubor supabase/photo_images.sql.",
+      "photo-upload-size": "Vybrane fotky jsou moc velke. Nahraj prosim mensi davku, maximalne zhruba 75 MB najednou.",
     };
     const message =
       messages[error] ?? "Zmenu se nepodarilo ulozit. Zkontroluj prosim Supabase tabulky a opravneni.";
@@ -159,6 +190,10 @@ function AdminStatus({ error, saved }: { error?: string; saved?: string }) {
       "page-login": "Heslo pro detskou administraci je ulozene.",
       invoice: "Faktura je ulozena.",
       expense: "Vydaj je ulozeny.",
+      "photo-category": "Fotograficka kategorie je ulozena.",
+      "delete-photo-category": "Fotograficka kategorie je smazana.",
+      "photo-image": "Fotky jsou ulozene.",
+      "delete-photo-image": "Fotka je smazana.",
     };
 
     return (
@@ -222,7 +257,7 @@ async function getAdminTopics(): Promise<AdminTopic[]> {
   const supabase = getSupabaseServerClient();
 
   if (!supabase) {
-    return topicSeeds.map((topic, index) => ({ ...topic, sort_order: index + 1 }));
+    return topicSeedsWithOrder();
   }
 
   const { data, error } = await supabase.from("topics").select("*").order("sort_order", {
@@ -230,7 +265,7 @@ async function getAdminTopics(): Promise<AdminTopic[]> {
   });
 
   if (error || !data || data.length === 0) {
-    return topicSeeds.map((topic, index) => ({ ...topic, sort_order: index + 1 }));
+    return topicSeedsWithOrder();
   }
 
   const mapped: AdminTopic[] = [];
@@ -243,5 +278,5 @@ async function getAdminTopics(): Promise<AdminTopic[]> {
     }
   }
 
-  return mapped;
+  return mergeRequiredSeeds(mapped);
 }

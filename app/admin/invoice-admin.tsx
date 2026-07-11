@@ -259,7 +259,6 @@ function InvoiceDetail({ invoice }: { invoice: Invoice | null }) {
           <PreviewMeta label="Variabilní symbol" value={bankVariableSymbol} />
           <PreviewMeta label="Vystavení" value={formatDate(invoice.issue_date)} />
           <PreviewMeta label="Splatnost" value={formatDate(invoice.due_date)} />
-          <PreviewMeta label="DUZP" value={formatDate(invoice.taxable_supply_date)} wide />
         </dl>
 
         <div className="mt-6 overflow-x-auto rounded-2xl border border-zinc-200 text-sm">

@@ -60,6 +60,32 @@ create policy "Allow public read adamek memory themes"
   for select
   using (true);
 
+create table if not exists public.adamek_memory_results (
+  id uuid primary key default gen_random_uuid(),
+  player_name text not null,
+  difficulty text not null check (difficulty in ('easy', 'medium', 'hard')),
+  theme_name text not null,
+  seconds integer not null check (seconds >= 0),
+  moves integer not null check (moves >= 0),
+  pairs integer not null check (pairs > 0),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists adamek_memory_results_score_idx
+  on public.adamek_memory_results (difficulty, seconds, moves, created_at);
+
+alter table public.adamek_memory_results enable row level security;
+
+grant select on public.adamek_memory_results to anon, authenticated;
+grant all on public.adamek_memory_results to service_role;
+
+drop policy if exists "Allow public read adamek memory results" on public.adamek_memory_results;
+
+create policy "Allow public read adamek memory results"
+  on public.adamek_memory_results
+  for select
+  using (true);
+
 insert into public.adamek_memory_themes (name, images)
 select
   'Jídlo',

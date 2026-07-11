@@ -15,6 +15,7 @@ export async function loginPageAdmin(formData: FormData) {
   const isValid = await verifyPageAdminPassword(pageId, password);
 
   if (!isValid) {
+    await clearPageAdminSession(pageId);
     redirect(`${redirectTo}?error=login`);
   }
 

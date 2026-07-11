@@ -8,6 +8,7 @@ import {
   getMemoryDifficulty,
   memoryDifficulties,
   type MemoryDifficulty,
+  type MemoryResult,
   type MemoryTheme,
 } from "@/lib/adamek";
 
@@ -20,14 +21,28 @@ type GameCard = {
 
 type GameState = "setup" | "playing" | "finished";
 
-export function MemoryGame({ themes }: { themes: MemoryTheme[] }) {
+const playerNameStorageKey = "adamekMemoryPlayerName";
+
+export function MemoryGame({
+  themes,
+  initialResults,
+}: {
+  themes: MemoryTheme[];
+  initialResults: MemoryResult[];
+}) {
   const [themeId, setThemeId] = useState(themes[0]?.id ?? "");
   const [difficulty, setDifficulty] = useState<MemoryDifficulty>("easy");
+  const [playerName, setPlayerName] = useState(() =>
+    typeof window === "undefined" ? "" : window.localStorage.getItem(playerNameStorageKey) ?? "",
+  );
   const [cards, setCards] = useState<GameCard[]>([]);
   const [flippedIds, setFlippedIds] = useState<string[]>([]);
   const [state, setState] = useState<GameState>("setup");
   const [seconds, setSeconds] = useState(0);
+  const [moves, setMoves] = useState(0);
   const [message, setMessage] = useState("");
+  const [saveMessage, setSaveMessage] = useState("");
+  const [results, setResults] = useState<MemoryResult[]>(initialResults);
 
   const selectedTheme = themes.find((theme) => theme.id === themeId) ?? themes[0];
   const selectedDifficulty = getMemoryDifficulty(difficulty);
@@ -49,10 +64,40 @@ export function MemoryGame({ themes }: { themes: MemoryTheme[] }) {
     }
 
     window.setTimeout(() => {
+      if (selectedTheme) {
+        const nextResult: MemoryResult = {
+          id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+          playerName: playerName.trim(),
+          difficulty,
+          themeName: selectedTheme.name,
+          seconds,
+          moves,
+          pairs: selectedDifficulty.pairs,
+          createdAt: new Date().toISOString(),
+        };
+        void saveResultToDatabase(nextResult)
+          .then((nextResults) => {
+            setResults(nextResults);
+          })
+          .catch(() => {
+            setSaveMessage("Výsledek se nepodařilo uložit do databáze.");
+          });
+      }
+
       setState("finished");
       playVictorySound();
     }, 0);
-  }, [cards.length, matchedPairs, selectedDifficulty.pairs, state]);
+  }, [
+    cards.length,
+    difficulty,
+    matchedPairs,
+    moves,
+    playerName,
+    seconds,
+    selectedDifficulty.pairs,
+    selectedTheme,
+    state,
+  ]);
 
   useEffect(() => {
     if (flippedIds.length !== 2) {
@@ -85,12 +130,25 @@ export function MemoryGame({ themes }: { themes: MemoryTheme[] }) {
   }, [cards, flippedIds]);
 
   const gridColumns = useMemo(() => {
-    if (selectedDifficulty.pairs >= 30) return "repeat(auto-fit, minmax(clamp(3.4rem, 10vw, 5.2rem), 1fr))";
-    if (selectedDifficulty.pairs >= 15) return "repeat(auto-fit, minmax(clamp(4rem, 13vw, 6.4rem), 1fr))";
+    if (selectedDifficulty.pairs >= 30) {
+      return "repeat(auto-fit, minmax(clamp(3.4rem, 10vw, 5.2rem), 1fr))";
+    }
+
+    if (selectedDifficulty.pairs >= 15) {
+      return "repeat(auto-fit, minmax(clamp(4rem, 13vw, 6.4rem), 1fr))";
+    }
+
     return "repeat(auto-fit, minmax(clamp(4.8rem, 18vw, 7.5rem), 1fr))";
   }, [selectedDifficulty.pairs]);
 
   function startGame() {
+    const cleanName = playerName.trim();
+
+    if (!cleanName) {
+      setMessage("Nejdřív napiš svoje jméno.");
+      return;
+    }
+
     if (!selectedTheme) {
       setMessage("Nejdřív vytvoř téma v administraci.");
       return;
@@ -106,7 +164,10 @@ export function MemoryGame({ themes }: { themes: MemoryTheme[] }) {
     setCards(createDeck(selectedTheme, selectedDifficulty.pairs));
     setFlippedIds([]);
     setSeconds(0);
+    setMoves(0);
     setMessage("");
+    setSaveMessage("");
+    window.localStorage.setItem(playerNameStorageKey, cleanName);
     setState("playing");
   }
 
@@ -115,7 +176,9 @@ export function MemoryGame({ themes }: { themes: MemoryTheme[] }) {
     setCards([]);
     setFlippedIds([]);
     setSeconds(0);
+    setMoves(0);
     setMessage("");
+    setSaveMessage("");
   }
 
   function flipCard(card: GameCard) {
@@ -123,7 +186,13 @@ export function MemoryGame({ themes }: { themes: MemoryTheme[] }) {
       return;
     }
 
-    setFlippedIds((current) => [...current, card.id]);
+    setFlippedIds((current) => {
+      if (current.length === 1) {
+        setMoves((value) => value + 1);
+      }
+
+      return [...current, card.id];
+    });
   }
 
   return (
@@ -141,7 +210,11 @@ export function MemoryGame({ themes }: { themes: MemoryTheme[] }) {
           <div className="flex flex-wrap items-center gap-2 rounded-full border border-white/12 bg-white/10 px-4 py-2 text-sm font-black text-sky-50 backdrop-blur-md">
             <span>Čas: {formatTime(seconds)}</span>
             <span className="text-white/35">|</span>
-            <span>Dvojice: {matchedPairs}/{selectedDifficulty.pairs}</span>
+            <span>Tahy: {moves}</span>
+            <span className="text-white/35">|</span>
+            <span>
+              Dvojice: {matchedPairs}/{selectedDifficulty.pairs}
+            </span>
           </div>
         </header>
 
@@ -150,9 +223,12 @@ export function MemoryGame({ themes }: { themes: MemoryTheme[] }) {
             themes={themes}
             themeId={themeId}
             difficulty={difficulty}
+            playerName={playerName}
+            results={results}
             message={message}
             onThemeChange={setThemeId}
             onDifficultyChange={setDifficulty}
+            onPlayerNameChange={setPlayerName}
             onStart={startGame}
           />
         ) : (
@@ -160,7 +236,7 @@ export function MemoryGame({ themes }: { themes: MemoryTheme[] }) {
             <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
               <div>
                 <p className="font-mono text-xs uppercase tracking-[0.28em] text-yellow-200">
-                  {selectedTheme?.name ?? "Pexeso"}
+                  {selectedTheme?.name ?? "Pexeso"} / {selectedDifficulty.label}
                 </p>
                 <h1 className="mt-2 text-4xl font-black text-white sm:text-6xl">
                   Adamovo pexeso
@@ -192,14 +268,21 @@ export function MemoryGame({ themes }: { themes: MemoryTheme[] }) {
 
             {state === "finished" ? (
               <div className="fixed inset-0 z-40 grid place-items-center bg-slate-950/70 px-4 backdrop-blur-sm">
-                <div className="w-full max-w-xl rounded-[2rem] border border-yellow-200/40 bg-slate-950 p-7 text-center shadow-2xl shadow-yellow-950/30">
+                <div className="w-full max-w-2xl rounded-[2rem] border border-yellow-200/40 bg-slate-950 p-7 text-center shadow-2xl shadow-yellow-950/30">
                   <div className="mx-auto grid size-20 place-items-center rounded-[1.5rem] bg-gradient-to-br from-yellow-300 to-pink-300 text-slate-950">
                     <Trophy className="size-11" aria-hidden="true" />
                   </div>
                   <h2 className="mt-5 text-4xl font-black text-white">Skvělá práce!</h2>
                   <p className="mt-3 text-lg leading-8 text-sky-50">
-                    Našel jsi všech {selectedDifficulty.pairs} dvojic za {formatTime(seconds)}.
+                    {playerName.trim()}, našel jsi všech {selectedDifficulty.pairs} dvojic za{" "}
+                    {formatTime(seconds)} a {moves} tahů.
                   </p>
+                  {saveMessage ? (
+                    <p className="mt-4 rounded-2xl border border-amber-200/30 bg-amber-200/12 px-4 py-3 text-sm font-bold text-amber-50">
+                      {saveMessage}
+                    </p>
+                  ) : null}
+                  <ResultBoard results={results} activeDifficulty={difficulty} compact />
                   <button
                     type="button"
                     onClick={restartGame}
@@ -221,22 +304,28 @@ function SetupScreen({
   themes,
   themeId,
   difficulty,
+  playerName,
+  results,
   message,
   onThemeChange,
   onDifficultyChange,
+  onPlayerNameChange,
   onStart,
 }: {
   themes: MemoryTheme[];
   themeId: string;
   difficulty: MemoryDifficulty;
+  playerName: string;
+  results: MemoryResult[];
   message: string;
   onThemeChange: (value: string) => void;
   onDifficultyChange: (value: MemoryDifficulty) => void;
+  onPlayerNameChange: (value: string) => void;
   onStart: () => void;
 }) {
   return (
     <section className="flex flex-1 items-center justify-center py-10">
-      <div className="w-full max-w-4xl rounded-[2.5rem] border border-white/14 bg-white/10 p-6 shadow-2xl shadow-black/30 backdrop-blur-xl sm:p-9">
+      <div className="w-full max-w-5xl rounded-[2.5rem] border border-white/14 bg-white/10 p-6 shadow-2xl shadow-black/30 backdrop-blur-xl sm:p-9">
         <div className="mx-auto grid size-20 place-items-center rounded-[1.75rem] bg-gradient-to-br from-yellow-300 via-orange-300 to-pink-300 text-4xl shadow-xl shadow-black/20">
           🙂
         </div>
@@ -248,6 +337,16 @@ function SetupScreen({
         </h1>
 
         <div className="mt-8 grid gap-5 lg:grid-cols-2">
+          <label className="grid gap-3 lg:col-span-2">
+            <span className="text-lg font-black text-white">Tvoje jméno</span>
+            <input
+              value={playerName}
+              onChange={(event) => onPlayerNameChange(event.target.value)}
+              placeholder="Napiš svoje jméno..."
+              className="h-14 rounded-2xl border border-white/14 bg-slate-950/70 px-4 text-lg font-bold text-white outline-none placeholder:text-white/35 focus:ring-2 focus:ring-yellow-200"
+            />
+          </label>
+
           <label className="grid gap-3">
             <span className="text-lg font-black text-white">Vyber téma</span>
             <select
@@ -306,8 +405,88 @@ function SetupScreen({
           <Sparkles className="size-6" aria-hidden="true" />
           Spustit hru
         </button>
+
+        <ResultBoard results={results} activeDifficulty={difficulty} />
       </div>
     </section>
+  );
+}
+
+function ResultBoard({
+  results,
+  activeDifficulty,
+  compact,
+}: {
+  results: MemoryResult[];
+  activeDifficulty: MemoryDifficulty;
+  compact?: boolean;
+}) {
+  return (
+    <div className={`${compact ? "mt-6" : "mt-8"} rounded-[1.5rem] border border-white/12 bg-slate-950/55 p-4 text-left`}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-xl font-black text-white">Nejlepší výsledky</h2>
+        <div className="flex flex-wrap gap-2">
+          {memoryDifficulties.map((difficulty) => (
+            <span
+              key={difficulty.id}
+              className={`rounded-full px-3 py-1 text-xs font-black ${
+                activeDifficulty === difficulty.id
+                  ? "bg-yellow-200 text-slate-950"
+                  : "bg-white/10 text-sky-100"
+              }`}
+            >
+              {difficulty.label}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <div className={`mt-4 grid gap-3 ${compact ? "" : "lg:grid-cols-3"}`}>
+        {memoryDifficulties
+          .filter((difficulty) => !compact || difficulty.id === activeDifficulty)
+          .map((difficulty) => {
+            const topResults = topResultsForDifficulty(results, difficulty.id);
+
+            return (
+              <div key={difficulty.id} className="rounded-2xl border border-white/10 bg-white/6 p-3">
+                <p className="font-mono text-xs uppercase tracking-[0.18em] text-yellow-200">
+                  {difficulty.label}
+                </p>
+                {topResults.length === 0 ? (
+                  <p className="mt-3 text-sm font-semibold text-sky-100/70">
+                    Zatím tu není žádný výsledek.
+                  </p>
+                ) : (
+                  <ol className="mt-3 space-y-2">
+                    {topResults.map((result, index) => (
+                      <li
+                        key={result.id}
+                        className="grid grid-cols-[auto_1fr_auto] items-center gap-2 rounded-xl bg-slate-900/70 px-3 py-2 text-sm"
+                      >
+                        <span className="font-black text-yellow-200">{index + 1}.</span>
+                        <span className="min-w-0">
+                          <span className="block truncate font-bold text-white">
+                            {result.playerName}
+                          </span>
+                          <span className="block truncate text-xs text-sky-100/60">
+                            {result.themeName}
+                          </span>
+                        </span>
+                        <span className="text-right font-black text-white">
+                          {formatTime(result.seconds)}
+                          <span className="block text-xs font-semibold text-sky-100/60">
+                            {result.moves} tahů
+                          </span>
+                        </span>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </div>
+            );
+          })}
+      </div>
+    </div>
   );
 }
 
@@ -375,6 +554,53 @@ function createDeck(theme: MemoryTheme, pairs: number): GameCard[] {
 
 function shuffle<T>(items: T[]) {
   return [...items].sort(() => Math.random() - 0.5);
+}
+
+function topResultsForDifficulty(results: MemoryResult[], difficulty: MemoryDifficulty) {
+  return results
+    .filter((result) => result.difficulty === difficulty)
+    .sort((a, b) => a.seconds - b.seconds || a.moves - b.moves)
+    .slice(0, 5);
+}
+
+async function saveResultToDatabase(result: MemoryResult) {
+  const response = await fetch("/api/adamek/memory-results", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      playerName: result.playerName,
+      difficulty: result.difficulty,
+      themeName: result.themeName,
+      seconds: result.seconds,
+      moves: result.moves,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Memory result could not be saved.");
+  }
+
+  const payload = (await response.json()) as { results?: unknown };
+  return Array.isArray(payload.results) ? payload.results.filter(isMemoryResult) : [];
+}
+
+function isMemoryResult(value: unknown): value is MemoryResult {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const result = value as Partial<MemoryResult>;
+  return (
+    typeof result.id === "string" &&
+    typeof result.playerName === "string" &&
+    typeof result.themeName === "string" &&
+    typeof result.seconds === "number" &&
+    typeof result.moves === "number" &&
+    typeof result.pairs === "number" &&
+    (result.difficulty === "easy" || result.difficulty === "medium" || result.difficulty === "hard")
+  );
 }
 
 function formatTime(totalSeconds: number) {

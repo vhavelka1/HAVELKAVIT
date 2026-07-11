@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseServerClient } from "@/lib/site-settings";
 
 export type Language = "cs" | "en";
 
@@ -142,16 +142,11 @@ const slugAliases = new Map<string, string>(
 );
 
 export async function getTopics(): Promise<Topic[]> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const supabase = getSupabaseServerClient();
 
-  if (!supabaseUrl || !supabaseAnonKey) {
+  if (!supabase) {
     return topicSeeds;
   }
-
-  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-    auth: { persistSession: false },
-  });
 
   const { data, error } = await supabase.from("topics").select("*").order("sort_order", {
     ascending: true,
@@ -165,7 +160,7 @@ export async function getTopics(): Promise<Topic[]> {
     .map(mapTopicRow)
     .filter((topic): topic is Topic => Boolean(topic));
 
-  return mapped.length > 0 ? mergeRequiredSeeds(mapped) : topicSeeds;
+  return mapped.length > 0 ? mergeRequiredSeeds(mapped) : topicSeedsWithOrder();
 }
 
 export function mapTopicRow(row: SupabaseTopicRow): Topic | undefined {
@@ -215,19 +210,41 @@ export function slugify(value: string) {
     .replace(/^-+|-+$/g, "");
 }
 
-function mergeRequiredSeeds(topics: Topic[]) {
+export function mergeRequiredSeeds<T extends Topic>(topics: T[]) {
   const requiredSlugs = ["emicka", "adamek"];
-  const merged = [...topics];
+  const merged: Topic[] = [...topics];
 
   for (const slug of requiredSlugs) {
     if (!merged.some((topic) => topic.slug === slug)) {
       const seed = topicSeeds.find((topic) => topic.slug === slug);
 
       if (seed) {
-        merged.push({ ...seed, sort_order: merged.length + 1 });
+        merged.push({ ...seed, sort_order: seedSortOrder(seed.slug) });
       }
     }
   }
 
-  return merged.sort((a, b) => Number(a.sort_order ?? 0) - Number(b.sort_order ?? 0));
+  return merged.sort(compareTopics);
+}
+
+export function topicSeedsWithOrder() {
+  return topicSeeds.map((topic) => ({
+    ...topic,
+    sort_order: seedSortOrder(topic.slug),
+  }));
+}
+
+function compareTopics(a: Topic, b: Topic) {
+  const orderDiff = Number(a.sort_order ?? seedSortOrder(a.slug)) - Number(b.sort_order ?? seedSortOrder(b.slug));
+
+  if (orderDiff !== 0) {
+    return orderDiff;
+  }
+
+  return seedSortOrder(a.slug) - seedSortOrder(b.slug);
+}
+
+function seedSortOrder(slug: string) {
+  const index = topicSeeds.findIndex((topic) => topic.slug === slug);
+  return index === -1 ? Number.MAX_SAFE_INTEGER : index + 1;
 }

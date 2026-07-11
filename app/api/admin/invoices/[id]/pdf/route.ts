@@ -114,8 +114,8 @@ function drawSupplierAndCustomer(doc: PDFKit.PDFDocument, invoice: InvoicePdf) {
 
 function drawDates(doc: PDFKit.PDFDocument, invoice: InvoicePdf) {
   const y = 286;
-  doc.roundedRect(42, y, 511, 82, 14).fill("#F8FAFC");
-  doc.roundedRect(42, y, 511, 82, 14).strokeColor("#E5E7EB").lineWidth(1).stroke();
+  doc.roundedRect(42, y, 511, 64, 14).fill("#F8FAFC");
+  doc.roundedRect(42, y, 511, 64, 14).strokeColor("#E5E7EB").lineWidth(1).stroke();
 
   const columns = [
     ["Číslo faktury", invoice.invoice_number, 58],
@@ -128,9 +128,6 @@ function drawDates(doc: PDFKit.PDFDocument, invoice: InvoicePdf) {
     doc.fillColor("#6B7280").font("Geist").fontSize(8.5).text(label, x, y + 18);
     doc.fillColor("#111111").fontSize(10.5).text(value, x, y + 39, { width: 104 });
   });
-
-  doc.fillColor("#6B7280").fontSize(8.5).text("Datum uskutečnění plnění", 58, y + 62);
-  doc.fillColor("#111111").fontSize(10).text(formatDate(invoice.taxable_supply_date), 202, y + 62);
 }
 
 function drawItems(doc: PDFKit.PDFDocument, invoice: InvoicePdf) {

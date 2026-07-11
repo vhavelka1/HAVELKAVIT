@@ -5,8 +5,10 @@ import {
   ArrowLeft,
   ArrowRight,
   Award,
+  BarChart3,
   Bug,
   Check,
+  Clock,
   Heart,
   HeartPulse,
   Lightbulb,
@@ -30,7 +32,7 @@ import type { CSSProperties } from "react";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { getSupabaseBrowserClient, type QuizQuestionRow } from "@/lib/quiz";
 
-type Screen = "nickname" | "intro" | "topics" | "difficulty" | "quiz" | "result";
+type Screen = "nickname" | "intro" | "topics" | "difficulty" | "quiz" | "result" | "overall-results";
 type Difficulty = "easy" | "medium" | "hard";
 
 type Question = {
@@ -60,6 +62,25 @@ type LeaderboardRow = {
   points: number;
   completed_quizzes?: number | null;
   badges?: string[] | null;
+};
+
+type TimedQuizResult = {
+  nickname: string;
+  score: number;
+  totalQuestions: number;
+  elapsedMs: number;
+  createdAt: string;
+};
+
+type TimedQuizGroup = {
+  topicSlug: string;
+  difficulty: Difficulty;
+  results: TimedQuizResult[];
+};
+
+type QuizResultsSummary = {
+  overall: LeaderboardEntry[];
+  timedByQuiz: TimedQuizGroup[];
 };
 
 type PlayerProfile = {
@@ -240,6 +261,10 @@ export function EmickaQuizPlayground() {
   const [selectedAnswers, setSelectedAnswers] = useState<number[]>([]);
   const [recentlyUnlockedTopicId, setRecentlyUnlockedTopicId] = useState("");
   const [message, setMessage] = useState("");
+  const [quizStartedAt, setQuizStartedAt] = useState<number | null>(null);
+  const [overallResults, setOverallResults] = useState<QuizResultsSummary | null>(null);
+  const [overallResultsLoading, setOverallResultsLoading] = useState(false);
+  const [overallResultsError, setOverallResultsError] = useState("");
 
   const activeTopic = questionBank[selectedTopicIndex];
   const activeQuestions = activeTopic.questions[selectedDifficulty];
@@ -293,7 +318,25 @@ export function EmickaQuizPlayground() {
 
   const effectiveScreen = nickname ? screen : "nickname";
 
+  const loadOverallResults = async () => {
+    setOverallResultsLoading(true);
+    setOverallResultsError("");
+
+    try {
+      setOverallResults(await fetchQuizResultsSummary());
+    } catch {
+      setOverallResultsError("V\u00fdsledky se te\u010f nepoda\u0159ilo na\u010d\u00edst ze Supabase.");
+    } finally {
+      setOverallResultsLoading(false);
+    }
+  };
+
   const goBack = () => {
+    if (effectiveScreen === "overall-results") {
+      setScreen("topics");
+      return;
+    }
+
     if (effectiveScreen === "quiz" || effectiveScreen === "result") {
       setScreen("difficulty");
       return;
@@ -325,6 +368,11 @@ export function EmickaQuizPlayground() {
     setSelectedTopicIndex(topicIndex);
     setMessage("");
     setScreen("difficulty");
+  };
+
+  const openOverallResults = () => {
+    setScreen("overall-results");
+    void loadOverallResults();
   };
 
   const startQuiz = async (difficulty: Difficulty) => {
@@ -367,6 +415,7 @@ export function EmickaQuizPlayground() {
     setSelectedDifficulty(difficulty);
     setQuestionIndex(0);
     setSelectedAnswers([]);
+    setQuizStartedAt(new Date().getTime());
     setMessage("");
     setScreen("quiz");
   };
@@ -376,6 +425,8 @@ export function EmickaQuizPlayground() {
     setSelectedAnswers(nextAnswers);
 
     if (questionIndex === 9) {
+      const answeredAt = new Date().getTime();
+      const elapsedMs = Math.max(0, answeredAt - (quizStartedAt ?? answeredAt));
       const nextScore = nextAnswers.reduce(
         (total, item, index) => total + (item === activeQuestions[index]?.answer ? 1 : 0),
         0,
@@ -383,9 +434,27 @@ export function EmickaQuizPlayground() {
 
       if (nextScore === 10) {
         const pointsAwarded = completeQuiz();
-        void saveQuizResult(nickname, activeTopic, selectedDifficulty, activeQuestions, nextAnswers, nextScore, pointsAwarded);
+        void saveQuizResult(
+          nickname,
+          activeTopic,
+          selectedDifficulty,
+          activeQuestions,
+          nextAnswers,
+          nextScore,
+          pointsAwarded,
+          elapsedMs,
+        );
       } else {
-        void saveQuizResult(nickname, activeTopic, selectedDifficulty, activeQuestions, nextAnswers, nextScore, 0);
+        void saveQuizResult(
+          nickname,
+          activeTopic,
+          selectedDifficulty,
+          activeQuestions,
+          nextAnswers,
+          nextScore,
+          0,
+          elapsedMs,
+        );
       }
 
       setScreen("result");
@@ -419,6 +488,7 @@ export function EmickaQuizPlayground() {
   const retryQuiz = () => {
     setQuestionIndex(0);
     setSelectedAnswers([]);
+    setQuizStartedAt(new Date().getTime());
     setScreen("quiz");
   };
 
@@ -458,6 +528,21 @@ export function EmickaQuizPlayground() {
               <span>Zpět</span>
             </button>
           )}
+
+          {effectiveScreen !== "nickname" ? (
+            <button
+              type="button"
+              onClick={openOverallResults}
+              className={`inline-flex h-12 items-center gap-2 rounded-full border px-4 text-sm font-semibold shadow-xl shadow-violet-950/30 backdrop-blur-md transition-colors ${
+                effectiveScreen === "overall-results"
+                  ? "border-lime-200/60 bg-lime-300 text-emerald-950"
+                  : "border-violet-300/30 bg-white/8 text-white hover:bg-white/14"
+              }`}
+            >
+              <BarChart3 className="size-5" aria-hidden="true" />
+              <span>{"Celkov\u00e9 v\u00fdsledky"}</span>
+            </button>
+          ) : null}
 
           <PlayerBar profile={profile} progress={gameProgress} />
         </header>
@@ -511,6 +596,14 @@ export function EmickaQuizPlayground() {
             score={score}
             onRetry={retryQuiz}
             onContinue={continueAfterResult}
+          />
+        ) : null}
+        {effectiveScreen === "overall-results" ? (
+          <OverallResultsScreen
+            results={overallResults}
+            loading={overallResultsLoading}
+            error={overallResultsError}
+            onRefresh={() => void loadOverallResults()}
           />
         ) : null}
       </div>
@@ -1149,6 +1242,162 @@ function ResultScreen({
   );
 }
 
+function OverallResultsScreen({
+  results,
+  loading,
+  error,
+  onRefresh,
+}: {
+  results: QuizResultsSummary | null;
+  loading: boolean;
+  error: string;
+  onRefresh: () => void;
+}) {
+  const overall = results?.overall ?? [];
+  const timedByQuiz = results?.timedByQuiz ?? [];
+
+  return (
+    <section className="flex flex-1 flex-col gap-6 py-8">
+      <div className="rounded-[2rem] border border-violet-300/25 bg-slate-950/72 p-6 shadow-2xl shadow-violet-950/35 backdrop-blur-xl sm:p-8">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="font-mono text-xs uppercase tracking-[0.3em] text-cyan-200">
+              {"Emi\u010d\u010din kv\u00edz"}
+            </p>
+            <h1 className="mt-3 text-4xl font-black text-white sm:text-6xl">
+              {"Celkov\u00e9 v\u00fdsledky"}
+            </h1>
+            <p className="mt-3 max-w-2xl text-base leading-7 text-zinc-200 sm:text-lg">
+              {"Nejlep\u0161\u00ed hr\u00e1\u010di podle bod\u016f a nejrychlej\u0161\u00ed pokusy v jednotliv\u00fdch kv\u00edzech."}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onRefresh}
+            className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-lime-200/40 bg-lime-300 px-5 text-sm font-black text-emerald-950 shadow-xl shadow-lime-950/25 transition-colors hover:bg-lime-200"
+          >
+            <RefreshCw className={`size-5 ${loading ? "animate-spin" : ""}`} aria-hidden="true" />
+            {"Obnovit"}
+          </button>
+        </div>
+
+        {error ? <Notice>{error}</Notice> : null}
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-[0.95fr_1.45fr]">
+        <div className="rounded-[2rem] border border-white/10 bg-white/8 p-5 shadow-xl shadow-violet-950/25 backdrop-blur-md sm:p-6">
+          <div className="mb-5 flex items-center gap-3">
+            <div className="grid size-12 place-items-center rounded-2xl bg-gradient-to-br from-yellow-300 to-lime-300 text-emerald-950">
+              <Trophy className="size-6" aria-hidden="true" />
+            </div>
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.22em] text-lime-200">Top 10</p>
+              <h2 className="text-2xl font-black text-white">{"Celkov\u00e9 po\u0159ad\u00ed"}</h2>
+            </div>
+          </div>
+
+          {loading && !results ? (
+            <p className="rounded-2xl border border-white/10 bg-slate-950/45 p-5 text-zinc-200">
+              {"Na\u010d\u00edt\u00e1m v\u00fdsledky ze Supabase..."}
+            </p>
+          ) : overall.length > 0 ? (
+            <div className="space-y-3">
+              {overall.map((entry, index) => (
+                <div
+                  key={`${entry.nickname}-${index}`}
+                  className="flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-950/45 p-4"
+                >
+                  <span className="grid size-11 shrink-0 place-items-center rounded-full bg-white/10 text-lg font-black text-lime-200">
+                    {rankLabel(index)}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-lg font-black text-white">{entry.nickname}</p>
+                    <p className="text-sm font-semibold text-zinc-300">
+                      {entry.completed_quizzes} {"kv\u00edz\u016f"}
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-lime-300 px-3 py-1 text-sm font-black text-emerald-950">
+                    {entry.points} {"bod\u016f"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="rounded-2xl border border-white/10 bg-slate-950/45 p-5 text-zinc-200">
+              {"Zat\u00edm tu nejsou \u017e\u00e1dn\u00e9 celkov\u00e9 v\u00fdsledky."}
+            </p>
+          )}
+        </div>
+
+        <div className="rounded-[2rem] border border-white/10 bg-white/8 p-5 shadow-xl shadow-violet-950/25 backdrop-blur-md sm:p-6">
+          <div className="mb-5 flex items-center gap-3">
+            <div className="grid size-12 place-items-center rounded-2xl bg-gradient-to-br from-cyan-300 to-violet-400 text-slate-950">
+              <Clock className="size-6" aria-hidden="true" />
+            </div>
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-200">Top 5</p>
+              <h2 className="text-2xl font-black text-white">{"Jednotliv\u00e9 kv\u00edzy na \u010das"}</h2>
+            </div>
+          </div>
+
+          {loading && !results ? (
+            <p className="rounded-2xl border border-white/10 bg-slate-950/45 p-5 text-zinc-200">
+              {"Na\u010d\u00edt\u00e1m nejrychlej\u0161\u00ed pokusy..."}
+            </p>
+          ) : timedByQuiz.length > 0 ? (
+            <div className="grid gap-4 xl:grid-cols-2">
+              {timedByQuiz.map((group) => (
+                <div
+                  key={`${group.topicSlug}-${group.difficulty}`}
+                  className="rounded-[1.5rem] border border-white/10 bg-slate-950/45 p-4"
+                >
+                  <div className="mb-4 flex items-center gap-3">
+                    <div className="grid size-11 shrink-0 place-items-center rounded-2xl bg-white/10 text-lime-200">
+                      <TopicIcon topicId={group.topicSlug} className="size-6" />
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="truncate text-lg font-black text-white">
+                        {topicTitle(group.topicSlug)}
+                      </h3>
+                      <p className="text-sm font-bold text-violet-200">
+                        {difficultyLabel(group.difficulty)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    {group.results.map((entry, index) => (
+                      <div
+                        key={`${entry.nickname}-${entry.elapsedMs}-${index}`}
+                        className="grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-2xl bg-white/7 px-3 py-2"
+                      >
+                        <span className="text-sm font-black text-lime-200">{rankLabel(index)}</span>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-black text-white">{entry.nickname}</p>
+                          <p className="text-xs font-semibold text-zinc-400">
+                            {entry.score}/{entry.totalQuestions} {"spr\u00e1vn\u011b"}
+                          </p>
+                        </div>
+                        <span className="rounded-full border border-cyan-200/30 bg-cyan-300/12 px-2 py-1 text-xs font-black text-cyan-100">
+                          {formatElapsedTime(entry.elapsedMs)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="rounded-2xl border border-white/10 bg-slate-950/45 p-5 text-zinc-200">
+              {"Zat\u00edm tu nejsou \u017e\u00e1dn\u00e9 \u010dasovan\u00e9 v\u00fdsledky. Nov\u00e9 dohran\u00e9 kv\u00edzy se u\u017e ulo\u017e\u00ed do Supabase i s \u010dasem."}
+            </p>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function PlayerBar({ profile, progress }: { profile: PlayerProfile; progress: number }) {
   return (
     <div className="order-2 w-full basis-full rounded-[1.5rem] border border-white/10 bg-white/8 p-3 shadow-xl shadow-violet-950/25 backdrop-blur-md sm:order-none sm:w-auto sm:min-w-[430px] sm:basis-auto">
@@ -1378,28 +1627,49 @@ async function saveQuizResult(
   selectedAnswers: number[],
   score: number,
   pointsAwarded: number,
+  elapsedMs: number,
 ) {
-  const supabase = getSupabaseBrowserClient();
+  await fetch("/api/emicka/quiz-results", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      nickname: nickname.trim() || "Hrac",
+      topicSlug: topic.id,
+      difficulty,
+      score,
+      totalQuestions: questions.length,
+      pointsAwarded,
+      elapsedMs,
+      answers: questions.map((question, index) => ({
+        question_id: question.id,
+        selected_option: answerLetters[selectedAnswers[index]] ?? "",
+        correct_option: answerLetters[question.answer] ?? "",
+        is_correct: selectedAnswers[index] === question.answer,
+      })),
+    }),
+  });
+}
 
-  if (!supabase) {
-    return;
+async function fetchQuizResultsSummary(): Promise<QuizResultsSummary> {
+  const response = await fetch("/api/emicka/quiz-results", {
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error("Quiz results could not be loaded.");
   }
 
-  await supabase.from("quiz_results").insert({
-    nickname: nickname.trim() || "Hráč",
-    topic_slug: topic.id,
-    difficulty,
-    score,
-    total_questions: questions.length,
-    points_awarded: pointsAwarded,
-    completed_perfect: score === questions.length,
-    answers: questions.map((question, index) => ({
-      question_id: question.id,
-      selected_option: answerLetters[selectedAnswers[index]] ?? "",
-      correct_option: answerLetters[question.answer] ?? "",
-      is_correct: selectedAnswers[index] === question.answer,
-    })),
-  });
+  const payload = await response.json() as {
+    overall?: LeaderboardRow[];
+    timedByQuiz?: unknown;
+  };
+
+  return {
+    overall: normalizeLeaderboard(payload.overall ?? []),
+    timedByQuiz: normalizeTimedQuizGroups(payload.timedByQuiz),
+  };
 }
 
 function prepareLeaderboard(
@@ -1488,6 +1758,62 @@ function prepareFallbackLeaderboard(entries: LeaderboardEntry[], entry: Leaderbo
   return source.sort((a, b) => b.points - a.points).slice(0, 10);
 }
 
+function normalizeTimedQuizGroups(value: unknown): TimedQuizGroup[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((group) => {
+      const row = group as Record<string, unknown>;
+      const difficulty = String(row.difficulty ?? "");
+
+      if (!["easy", "medium", "hard"].includes(difficulty)) {
+        return null;
+      }
+
+      const results = Array.isArray(row.results)
+        ? row.results
+            .map((result) => {
+              const resultRow = result as Record<string, unknown>;
+
+              return {
+                nickname: String(resultRow.nickname ?? "").trim() || "Hrac",
+                score: Number(resultRow.score ?? 0),
+                totalQuestions: Number(resultRow.totalQuestions ?? 0),
+                elapsedMs: Number(resultRow.elapsedMs ?? 0),
+                createdAt: String(resultRow.createdAt ?? ""),
+              };
+            })
+            .filter((result) =>
+              Number.isFinite(result.score) &&
+              Number.isFinite(result.totalQuestions) &&
+              Number.isFinite(result.elapsedMs) &&
+              result.elapsedMs > 0
+            )
+        : [];
+
+      return {
+        topicSlug: String(row.topicSlug ?? ""),
+        difficulty: difficulty as Difficulty,
+        results,
+      };
+    })
+    .filter((group): group is TimedQuizGroup => Boolean(group && group.topicSlug && group.results.length > 0));
+}
+
+function topicTitle(topicSlug: string) {
+  return topics.find((topic) => topic.id === topicSlug)?.title ?? topicSlug;
+}
+
+function formatElapsedTime(elapsedMs: number) {
+  const totalSeconds = Math.max(0, Math.round(elapsedMs / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+
+  return minutes > 0 ? `${minutes}:${String(seconds).padStart(2, "0")}` : `${seconds} s`;
+}
+
 function rankLabel(index: number) {
   if (index === 0) return "🥇";
   if (index === 1) return "🥈";
@@ -1519,15 +1845,21 @@ function subscribeNickname(onStoreChange: () => void) {
 }
 
 function isUnlocked(topicIndex: number, difficulty: Difficulty, completed: string[]) {
+  const topicId = topics[topicIndex]?.id;
+
+  if (!topicId) {
+    return false;
+  }
+
   if (difficulty === "easy") {
     return topicIndex === 0 || completed.includes(quizKey(topics[topicIndex - 1].id, "easy"));
   }
 
   if (difficulty === "medium") {
-    return topics.every((topic) => completed.includes(quizKey(topic.id, "easy")));
+    return completed.includes(quizKey(topicId, "easy"));
   }
 
-  return topics.every((topic) => completed.includes(quizKey(topic.id, "medium")));
+  return completed.includes(quizKey(topicId, "medium"));
 }
 
 function nextUnlockedTopicId(topicIndex: number, difficulty: Difficulty) {

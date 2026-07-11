@@ -126,14 +126,20 @@ export async function setPageAdminSession(pageId: PageAdminId) {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
-    path: `/${pageId}/admin`,
+    path: pageAdminCookiePath(pageId),
     maxAge: 60 * 60 * 8,
   });
 }
 
 export async function clearPageAdminSession(pageId: PageAdminId) {
   const cookieStore = await cookies();
-  cookieStore.delete(pageAdminCookieName(pageId));
+  cookieStore.set(pageAdminCookieName(pageId), "", {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: pageAdminCookiePath(pageId),
+    maxAge: 0,
+  });
 }
 
 function hashPassword(password: string, salt: string) {
@@ -142,6 +148,10 @@ function hashPassword(password: string, salt: string) {
 
 function pageAdminCookieName(pageId: PageAdminId) {
   return `havelkavit-${pageId}-admin`;
+}
+
+function pageAdminCookiePath(pageId: PageAdminId) {
+  return `/${pageId}/admin`;
 }
 
 function signPageAdminCookie(pageId: PageAdminId) {

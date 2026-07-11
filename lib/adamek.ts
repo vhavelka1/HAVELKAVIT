@@ -8,10 +8,32 @@ export type MemoryTheme = {
   images: string[];
 };
 
+export type MemoryResult = {
+  id: string;
+  playerName: string;
+  difficulty: MemoryDifficulty;
+  themeName: string;
+  seconds: number;
+  moves: number;
+  pairs: number;
+  createdAt: string;
+};
+
 type MemoryThemeRow = {
   id?: string | number | null;
   name?: string | null;
   images?: unknown;
+};
+
+type MemoryResultRow = {
+  id?: string | number | null;
+  player_name?: string | null;
+  difficulty?: string | null;
+  theme_name?: string | null;
+  seconds?: number | null;
+  moves?: number | null;
+  pairs?: number | null;
+  created_at?: string | null;
 };
 
 export const memoryDifficulties: Array<{
@@ -112,6 +134,34 @@ export function getMemoryDifficulty(id: MemoryDifficulty) {
   return memoryDifficulties.find((difficulty) => difficulty.id === id) ?? memoryDifficulties[0];
 }
 
+export async function getMemoryResults(): Promise<MemoryResult[]> {
+  const supabase = getSupabaseServerClient();
+
+  if (!supabase) {
+    return [];
+  }
+
+  const resultGroups = await Promise.all(
+    memoryDifficulties.map(async ({ id }) => {
+      const { data, error } = await supabase
+        .from("adamek_memory_results")
+        .select("id, player_name, difficulty, theme_name, seconds, moves, pairs, created_at")
+        .eq("difficulty", id)
+        .order("seconds", { ascending: true })
+        .order("moves", { ascending: true })
+        .order("created_at", { ascending: true })
+        .limit(5);
+
+      return error || !data ? [] : data;
+    }),
+  );
+
+  return resultGroups
+    .flat()
+    .map((row) => mapMemoryResultRow(row as MemoryResultRow))
+    .filter((result): result is MemoryResult => Boolean(result));
+}
+
 function mapMemoryThemeRow(row: MemoryThemeRow): MemoryTheme | undefined {
   const id = String(row.id ?? "").trim();
   const name = String(row.name ?? "").trim();
@@ -135,4 +185,45 @@ function normalizeImages(value: unknown) {
   return value
     .map((item) => String(item ?? "").trim())
     .filter(Boolean);
+}
+
+function mapMemoryResultRow(row: MemoryResultRow): MemoryResult | undefined {
+  const difficulty = normalizeDifficulty(row.difficulty);
+  const id = String(row.id ?? "").trim();
+  const playerName = String(row.player_name ?? "").trim();
+  const themeName = String(row.theme_name ?? "").trim();
+  const seconds = Number(row.seconds);
+  const moves = Number(row.moves);
+  const pairs = Number(row.pairs);
+
+  if (
+    !id ||
+    !playerName ||
+    !difficulty ||
+    !themeName ||
+    !Number.isFinite(seconds) ||
+    !Number.isFinite(moves) ||
+    !Number.isFinite(pairs)
+  ) {
+    return undefined;
+  }
+
+  return {
+    id,
+    playerName,
+    difficulty,
+    themeName,
+    seconds,
+    moves,
+    pairs,
+    createdAt: row.created_at ?? "",
+  };
+}
+
+export function normalizeDifficulty(value: unknown): MemoryDifficulty | undefined {
+  if (value === "easy" || value === "medium" || value === "hard") {
+    return value;
+  }
+
+  return undefined;
 }

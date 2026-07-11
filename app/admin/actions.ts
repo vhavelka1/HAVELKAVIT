@@ -13,6 +13,7 @@ import {
 
 const realAdminPath = "/login/fake";
 const adminImagesBucket = "admin-images";
+const maxPhotoUploadBytes = 75 * 1024 * 1024;
 const expenseDocumentMimeTypes = [
   "application/pdf",
   "image/jpeg",
@@ -94,7 +95,7 @@ export async function saveTopic(formData: FormData) {
 
   const result = id
     ? await supabase.from("topics").update(payload).eq("id", id)
-    : await supabase.from("topics").insert(payload);
+    : await supabase.from("topics").upsert(payload, { onConflict: "slug" });
 
   if (result.error) {
     redirect(`${realAdminPath}?error=save-topic`);
@@ -170,6 +171,186 @@ export async function deleteSectionPost(formData: FormData) {
   revalidatePath("/");
   revalidatePath(realAdminPath);
   redirect(`${realAdminPath}?saved=delete-post`);
+}
+
+export async function savePhotoCategory(formData: FormData) {
+  await requireAdmin();
+  const supabase = requireSupabase();
+  const id = String(formData.get("id") || "");
+  const imageUrl = await uploadAdminImage(formData, "photo-categories", supabase);
+  const payload = {
+    name: readField(formData, "name", ""),
+    slug: readField(formData, "slug", ""),
+    description: readField(formData, "description", ""),
+    long_description: readField(formData, "long_description", ""),
+    icon: readField(formData, "icon", "Camera"),
+    accent_color: readField(formData, "accent_color", "#5eead4"),
+    image_url: imageUrl,
+    is_active: formData.get("is_active") === "on",
+    sort_order: Number(formData.get("sort_order") || 0),
+    updated_at: new Date().toISOString(),
+  };
+
+  if (!payload.name || !payload.slug) {
+    redirect(`${realAdminPath}?error=photo-category#fotografie-kategorie`);
+  }
+
+  const result = id
+    ? await supabase.from("photo_categories").update(payload).eq("id", id)
+    : await supabase.from("photo_categories").upsert(payload, { onConflict: "slug" });
+
+  if (result.error) {
+    redirect(`${realAdminPath}?error=photo-category#fotografie-kategorie`);
+  }
+
+  revalidatePath("/fotografie");
+  revalidatePath(realAdminPath);
+  redirect(`${realAdminPath}?saved=photo-category#fotografie-kategorie`);
+}
+
+export async function deletePhotoCategory(formData: FormData) {
+  await requireAdmin();
+  const supabase = requireSupabase();
+  const id = String(formData.get("id") || "");
+
+  if (!id) {
+    return;
+  }
+
+  const { error } = await supabase.from("photo_categories").delete().eq("id", id);
+
+  if (error) {
+    redirect(`${realAdminPath}?error=photo-category#fotografie-kategorie`);
+  }
+
+  revalidatePath("/fotografie");
+  revalidatePath(realAdminPath);
+  redirect(`${realAdminPath}?saved=delete-photo-category#fotografie-kategorie`);
+}
+
+export async function uploadPhotoImages(formData: FormData) {
+  await requireAdmin();
+  const supabase = requireSupabase();
+  const categoryId = readField(formData, "category_id", "");
+  const title = readField(formData, "title", "");
+  const description = readField(formData, "description", "");
+  const sortOrder = Number(formData.get("sort_order") || 0);
+  const files = formData
+    .getAll("image_files")
+    .filter((file): file is File => file instanceof File && file.size > 0);
+
+  if (!categoryId || files.length === 0) {
+    redirect(`${realAdminPath}?error=photo-image#fotografie-kategorie`);
+  }
+
+  const totalSize = files.reduce((total, file) => total + file.size, 0);
+
+  if (totalSize > maxPhotoUploadBytes) {
+    redirect(`${realAdminPath}?error=photo-upload-size#fotografie-kategorie`);
+  }
+
+  const bucketReady = await ensureAdminImagesBucket(supabase);
+
+  if (!bucketReady) {
+    redirect(`${realAdminPath}?error=upload-image#fotografie-kategorie`);
+  }
+
+  const { error: tableError } = await supabase.from("photo_images").select("id").limit(1);
+
+  if (tableError) {
+    redirect(`${realAdminPath}?error=photo-image-table#fotografie-kategorie`);
+  }
+
+  const rows = [];
+
+  for (const [index, file] of files.entries()) {
+    if (!file.type.startsWith("image/")) {
+      redirect(`${realAdminPath}?error=upload-image#fotografie-kategorie`);
+    }
+
+    const extension = extensionFromFile(file);
+    const path = `photo-gallery/${categoryId}/${Date.now()}-${index}-${randomUUID()}${extension}`;
+    const bytes = Buffer.from(await file.arrayBuffer());
+    const { error } = await supabase.storage.from(adminImagesBucket).upload(path, bytes, {
+      contentType: file.type,
+      upsert: false,
+    });
+
+    if (error) {
+      redirect(`${realAdminPath}?error=upload-image#fotografie-kategorie`);
+    }
+
+    const { data } = supabase.storage.from(adminImagesBucket).getPublicUrl(path);
+
+    rows.push({
+      category_id: categoryId,
+      image_url: data.publicUrl,
+      title,
+      description,
+      sort_order: sortOrder + index,
+      is_active: true,
+      updated_at: new Date().toISOString(),
+    });
+  }
+
+  const { error } = await supabase.from("photo_images").insert(rows);
+
+  if (error) {
+    redirect(`${realAdminPath}?error=photo-image#fotografie-kategorie`);
+  }
+
+  revalidatePath("/fotografie");
+  revalidatePath(realAdminPath);
+  redirect(`${realAdminPath}?saved=photo-image#fotografie-kategorie`);
+}
+
+export async function savePhotoImage(formData: FormData) {
+  await requireAdmin();
+  const supabase = requireSupabase();
+  const id = String(formData.get("id") || "");
+
+  if (!id) {
+    redirect(`${realAdminPath}?error=photo-image#fotografie-kategorie`);
+  }
+
+  const { error } = await supabase
+    .from("photo_images")
+    .update({
+      title: readField(formData, "title", ""),
+      description: readField(formData, "description", ""),
+      sort_order: Number(formData.get("sort_order") || 0),
+      is_active: formData.get("is_active") === "on",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id);
+
+  if (error) {
+    redirect(`${realAdminPath}?error=photo-image#fotografie-kategorie`);
+  }
+
+  revalidatePath("/fotografie");
+  revalidatePath(realAdminPath);
+  redirect(`${realAdminPath}?saved=photo-image#fotografie-kategorie`);
+}
+
+export async function deletePhotoImage(formData: FormData) {
+  await requireAdmin();
+  const supabase = requireSupabase();
+  const id = String(formData.get("id") || "");
+
+  if (!id) {
+    return;
+  }
+
+  const { error } = await supabase.from("photo_images").delete().eq("id", id);
+
+  if (error) {
+    redirect(`${realAdminPath}?error=photo-image#fotografie-kategorie`);
+  }
+
+  revalidatePath("/fotografie");
+  revalidatePath(realAdminPath);
+  redirect(`${realAdminPath}?saved=delete-photo-image#fotografie-kategorie`);
 }
 
 export async function savePageLoginPassword(formData: FormData) {

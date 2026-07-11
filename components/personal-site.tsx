@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Languages, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import type { SectionPost } from "@/lib/section-posts";
 import type { SiteSettings } from "@/lib/site-settings";
@@ -16,6 +17,7 @@ type PersonalSiteProps = {
 };
 
 export function PersonalSite({ topics, settings, posts }: PersonalSiteProps) {
+  const router = useRouter();
   const [language, setLanguage] = useState<Language>("cs");
   const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
 
@@ -107,7 +109,14 @@ export function PersonalSite({ topics, settings, posts }: PersonalSiteProps) {
             topics={topics}
             language={language}
             selectedTopic={selectedTopic}
-            onSelect={setSelectedTopic}
+            onSelect={(topic) => {
+              if (topic.slug === "photography") {
+                router.push("/fotografie");
+                return;
+              }
+
+              setSelectedTopic(topic);
+            }}
           />
         </div>
       </section>
@@ -252,7 +261,7 @@ function NodeNetwork({ topics, language, selectedTopic, onSelect }: NodeNetworkP
               y2={end.y}
               stroke="url(#network-line)"
               strokeWidth="0.22"
-              initial={{ pathLength: 0 }}
+              initial={{ pathLength: 0, opacity: 0 }}
               animate={{ pathLength: 1, opacity: 0.9 }}
               transition={{ duration: 0.7, delay: 0.08 * index }}
             />
