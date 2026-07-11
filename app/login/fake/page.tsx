@@ -194,6 +194,7 @@ function AdminStatus({ error, saved }: { error?: string; saved?: string }) {
       "delete-photo-category": "Fotograficka kategorie je smazana.",
       "photo-image": "Fotky jsou ulozene.",
       "delete-photo-image": "Fotka je smazana.",
+      "delete-photo-album": "Album je smazane.",
     };
 
     return (

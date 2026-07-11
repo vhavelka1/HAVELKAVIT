@@ -353,6 +353,31 @@ export async function deletePhotoImage(formData: FormData) {
   redirect(`${realAdminPath}?saved=delete-photo-image#fotografie-kategorie`);
 }
 
+export async function deletePhotoAlbum(formData: FormData) {
+  await requireAdmin();
+  const supabase = requireSupabase();
+  const categoryId = readField(formData, "category_id", "");
+  const albumTitle = readField(formData, "album_title", "");
+
+  if (!categoryId) {
+    redirect(`${realAdminPath}?error=photo-image#fotografie-kategorie`);
+  }
+
+  const { error } = await supabase
+    .from("photo_images")
+    .delete()
+    .eq("category_id", categoryId)
+    .eq("title", albumTitle);
+
+  if (error) {
+    redirect(`${realAdminPath}?error=photo-image#fotografie-kategorie`);
+  }
+
+  revalidatePath("/fotografie");
+  revalidatePath(realAdminPath);
+  redirect(`${realAdminPath}?saved=delete-photo-album#fotografie-kategorie`);
+}
+
 export async function savePageLoginPassword(formData: FormData) {
   await requireAdmin();
   const pageId = String(formData.get("page_id") || "") as PageAdminId;
