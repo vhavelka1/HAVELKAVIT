@@ -556,6 +556,8 @@ export async function deleteExpenseCategory(formData: FormData) {
   await requireAdmin();
   const supabase = requireSupabase();
   const name = readField(formData, "name", "");
+  const replacementCategory = readField(formData, "replacement_category", "");
+  const categories = await getExpenseCategories();
 
   if (!name) {
     redirect(`${realAdminPath}?error=expense-category#danova-evidence`);
@@ -566,8 +568,23 @@ export async function deleteExpenseCategory(formData: FormData) {
     .select("id", { count: "exact", head: true })
     .eq("category", name);
 
-  if (countError || Number(count ?? 0) > 0) {
-    redirect(`${realAdminPath}?error=expense-category-used#danova-evidence`);
+  if (countError) {
+    redirect(`${realAdminPath}?error=expense-category#danova-evidence`);
+  }
+
+  if (Number(count ?? 0) > 0) {
+    if (!replacementCategory || replacementCategory === name || !categories.includes(replacementCategory)) {
+      redirect(`${realAdminPath}?error=expense-category-used#danova-evidence`);
+    }
+
+    const { error: replacementError } = await supabase
+      .from("expenses")
+      .update({ category: replacementCategory, updated_at: new Date().toISOString() })
+      .eq("category", name);
+
+    if (replacementError) {
+      redirect(`${realAdminPath}?error=expense-category#danova-evidence`);
+    }
   }
 
   const { error } = await supabase.from("expense_categories").delete().eq("name", name);

@@ -260,9 +260,21 @@ function ExpenseCategoryEditor({ categories }: { categories: string[] }) {
             </form>
             <form action={deleteExpenseCategory}>
               <input type="hidden" name="name" value={category} />
-              <button className="h-10 rounded-full border border-red-300/30 px-4 text-xs font-bold text-red-100 transition-colors hover:bg-red-400/15">
-                Smazat kategorii
-              </button>
+              <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                <select name="replacement_category" className="admin-input h-10 text-xs" defaultValue={defaultReplacementCategory(categories, category)}>
+                  {categories
+                    .filter((item) => item !== category)
+                    .map((item) => (
+                      <option key={item} value={item}>
+                        Presunout vydaje do: {item}
+                      </option>
+                    ))}
+                  <option value="">Smazat jen pokud neni pouzita</option>
+                </select>
+                <button className="h-10 rounded-full border border-red-300/30 px-4 text-xs font-bold text-red-100 transition-colors hover:bg-red-400/15">
+                  Smazat kategorii
+                </button>
+              </div>
             </form>
           </div>
         ))}
@@ -276,6 +288,12 @@ function ExpenseCategoryEditor({ categories }: { categories: string[] }) {
       </form>
     </div>
   );
+}
+
+function defaultReplacementCategory(categories: string[], currentCategory: string) {
+  return categories.find((category) => category !== currentCategory && category === "Ostatní")
+    ?? categories.find((category) => category !== currentCategory)
+    ?? "";
 }
 
 function SupplierField({ suppliers }: { suppliers: string[] }) {
