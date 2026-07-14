@@ -112,7 +112,11 @@ export default async function AdminPage({
           </a>
         </nav>
         <InvoiceAdmin invoices={invoices} selectedInvoice={selectedInvoice} />
-        <TaxEvidenceAdmin report={taxReport} years={taxYears} />
+        <TaxEvidenceAdmin
+          report={taxReport}
+          years={taxYears}
+          supplierOptions={collectExpenseSuppliers(allExpenses)}
+        />
         <PageLoginForms settings={pageLogins} />
         <PhotoCategoryAdmin categories={photoCategories} images={photoImages} />
 
@@ -205,6 +209,16 @@ function AdminStatus({ error, saved }: { error?: string; saved?: string }) {
   }
 
   return null;
+}
+
+function collectExpenseSuppliers(expenses: Awaited<ReturnType<typeof getExpenses>>) {
+  return Array.from(
+    new Set(
+      expenses
+        .map((expense) => expense.supplier.trim())
+        .filter(Boolean),
+    ),
+  ).sort((a, b) => a.localeCompare(b, "cs"));
 }
 
 function AdminLogin({ showError }: { showError: boolean }) {

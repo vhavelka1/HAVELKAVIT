@@ -349,8 +349,9 @@ function InvoiceField({
 function getNextInvoiceIdentifiers(invoices: Invoice[]) {
   const now = new Date();
   const datePrefix = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
-  const sequenceText = String(getNextInvoiceSequence(invoices)).padStart(3, "0");
-  const variableSequenceText = String(getNextInvoiceSequence(invoices)).padStart(2, "0").slice(-2);
+  const nextSequence = getNextInvoiceSequence(invoices, datePrefix);
+  const sequenceText = String(nextSequence).padStart(3, "0");
+  const variableSequenceText = String(nextSequence).padStart(2, "0").slice(-2);
 
   return {
     invoiceNumber: `${datePrefix}-${sequenceText}`,
@@ -358,10 +359,10 @@ function getNextInvoiceIdentifiers(invoices: Invoice[]) {
   };
 }
 
-function getNextInvoiceSequence(invoices: Invoice[]) {
+function getNextInvoiceSequence(invoices: Invoice[], datePrefix: string) {
   const highestSequence = invoices.reduce((highest, invoice) => {
-    const invoiceSequence = extractTrailingSequence(invoice.invoice_number);
-    const variableSequence = extractTrailingSequence(invoice.variable_symbol);
+    const invoiceSequence = extractDailyInvoiceSequence(invoice.invoice_number, datePrefix);
+    const variableSequence = extractDailyVariableSequence(invoice.variable_symbol, datePrefix);
 
     return Math.max(highest, invoiceSequence, variableSequence);
   }, 0);
@@ -369,23 +370,15 @@ function getNextInvoiceSequence(invoices: Invoice[]) {
   return highestSequence + 1;
 }
 
-function extractTrailingSequence(value: string) {
-  const invoiceNumberMatch = value.match(/-(\d+)$/);
+function extractDailyInvoiceSequence(value: string, datePrefix: string) {
+  const match = value.match(new RegExp(`^${datePrefix}-(\\d+)$`));
+  const sequence = Number(match?.[1] ?? 0);
+  return Number.isFinite(sequence) ? sequence : 0;
+}
 
-  if (invoiceNumberMatch) {
-    const sequence = Number(invoiceNumberMatch[1]);
-    return Number.isFinite(sequence) ? sequence : 0;
-  }
-
-  const variableSymbolMatch = value.match(/^\d{8}(\d+)$/);
-
-  if (variableSymbolMatch) {
-    const sequence = Number(variableSymbolMatch[1]);
-    return Number.isFinite(sequence) ? sequence : 0;
-  }
-
-  const fallbackMatch = value.match(/(\d+)$/);
-  const sequence = Number(fallbackMatch?.[1] ?? 0);
+function extractDailyVariableSequence(value: string, datePrefix: string) {
+  const match = value.match(new RegExp(`^${datePrefix}(\\d+)$`));
+  const sequence = Number(match?.[1] ?? 0);
   return Number.isFinite(sequence) ? sequence : 0;
 }
 

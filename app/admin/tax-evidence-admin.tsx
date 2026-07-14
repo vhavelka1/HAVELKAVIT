@@ -9,9 +9,11 @@ import { saveExpense } from "./actions";
 export function TaxEvidenceAdmin({
   report,
   years,
+  supplierOptions,
 }: {
   report: TaxEvidenceReport;
   years: number[];
+  supplierOptions: string[];
 }) {
   return (
     <section
@@ -77,7 +79,7 @@ export function TaxEvidenceAdmin({
               <TaxField label="Částka" name="amount" type="number" step="0.01" min="0" />
             </div>
             <TaxField label="Název výdaje" name="title" />
-            <TaxField label="Dodavatel" name="supplier" required={false} />
+            <SupplierField suppliers={supplierOptions} />
             <label className="grid gap-2">
               <span className="font-mono text-xs uppercase tracking-[0.18em] text-violet-200">
                 Kategorie
@@ -231,6 +233,37 @@ function IncomeList({ incomes }: { incomes: TaxEvidenceReport["incomes"] }) {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+function SupplierField({ suppliers }: { suppliers: string[] }) {
+  return (
+    <div className="grid gap-3">
+      <label className="grid gap-2">
+        <span className="font-mono text-xs uppercase tracking-[0.18em] text-violet-200">
+          Vybrat dodavatele
+        </span>
+        <select name="supplier_existing" className="admin-input" defaultValue="">
+          <option value="">Novy nebo bez dodavatele</option>
+          {suppliers.map((supplier) => (
+            <option key={supplier} value={supplier}>
+              {supplier}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="grid gap-2">
+        <span className="font-mono text-xs uppercase tracking-[0.18em] text-violet-200">
+          Novy dodavatel
+        </span>
+        <input
+          name="supplier_new"
+          className="admin-input"
+          autoComplete="off"
+          placeholder="Vypln jen pokud neni v seznamu"
+        />
+      </label>
     </div>
   );
 }

@@ -470,6 +470,7 @@ export async function saveExpense(formData: FormData) {
   const amount = Number(formData.get("amount") || 0);
   const expenseDate = readField(formData, "expense_date", "");
   const title = readField(formData, "title", "");
+  const supplier = readField(formData, "supplier_new", "") || readField(formData, "supplier_existing", "");
   const year = expenseDate ? new Date(expenseDate).getFullYear() : new Date().getFullYear();
 
   if (!expenseDate || !title || !Number.isFinite(amount) || amount < 0 || !isExpenseCategory(category)) {
@@ -481,7 +482,7 @@ export async function saveExpense(formData: FormData) {
   const { error } = await supabase.from("expenses").insert({
     expense_date: expenseDate,
     title,
-    supplier: readField(formData, "supplier", ""),
+    supplier,
     amount,
     category,
     note: readField(formData, "note", ""),
