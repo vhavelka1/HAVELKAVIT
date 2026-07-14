@@ -95,20 +95,32 @@ function drawSupplierAndCustomer(doc: PDFKit.PDFDocument, invoice: InvoicePdf) {
   doc.text(supplier.vatNote, 42, y + 88);
   doc.text(`Účet: ${supplier.bankAccount}`, 42, y + 103);
 
-  doc.fillColor("#111111").font("Geist").fontSize(9).text("ODBĚRATEL", 322, y);
-  doc.fillColor("#111111").fontSize(13).text(invoice.customer_name, 322, y + 18, {
-    width: 230,
+  const customerX = 322;
+  const customerWidth = 230;
+  const customerNameY = y + 18;
+
+  doc.fillColor("#111111").font("Geist").fontSize(9).text("ODBĚRATEL", customerX, y);
+  doc.fillColor("#111111").fontSize(13).text(invoice.customer_name, customerX, customerNameY, {
+    width: customerWidth,
   });
-  doc.fillColor("#374151").fontSize(9.5).text(invoice.customer_address, 322, y + 39, {
-    width: 230,
+  const customerAddressY =
+    customerNameY +
+    doc.heightOfString(invoice.customer_name, { width: customerWidth }) +
+    8;
+  doc.fillColor("#374151").fontSize(9.5).text(invoice.customer_address, customerX, customerAddressY, {
+    width: customerWidth,
   });
+  const customerMetaY =
+    customerAddressY +
+    doc.heightOfString(invoice.customer_address, { width: customerWidth }) +
+    15;
 
   if (invoice.customer_ico) {
-    doc.text(`IČ: ${invoice.customer_ico}`, 322, y + 88, { width: 230 });
+    doc.text(`IČ: ${invoice.customer_ico}`, customerX, customerMetaY, { width: customerWidth });
   }
 
   if (invoice.customer_dic) {
-    doc.text(`DIČ: ${invoice.customer_dic}`, 322, y + 103, { width: 230 });
+    doc.text(`DIČ: ${invoice.customer_dic}`, customerX, customerMetaY + 15, { width: customerWidth });
   }
 }
 
