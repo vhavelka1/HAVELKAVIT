@@ -1,10 +1,9 @@
 import { formatCurrency, formatDate } from "@/lib/invoices";
 import {
-  expenseCategories,
   type Expense,
   type TaxEvidenceReport,
 } from "@/lib/tax-evidence";
-import { saveExpense } from "./actions";
+import { deleteExpenseCategory, saveExpense, saveExpenseCategory } from "./actions";
 
 export function TaxEvidenceAdmin({
   report,
@@ -84,8 +83,8 @@ export function TaxEvidenceAdmin({
               <span className="font-mono text-xs uppercase tracking-[0.18em] text-violet-200">
                 Kategorie
               </span>
-              <select name="category" className="admin-input" defaultValue="Ostatní">
-                {expenseCategories.map((category) => (
+              <select name="category" className="admin-input" defaultValue={report.categories.at(-1) ?? ""}>
+                {report.categories.map((category) => (
                   <option key={category} value={category}>
                     {category}
                   </option>
@@ -130,6 +129,7 @@ export function TaxEvidenceAdmin({
               </div>
             ))}
           </div>
+          <ExpenseCategoryEditor categories={report.categories} />
         </div>
       </div>
 
@@ -233,6 +233,47 @@ function IncomeList({ incomes }: { incomes: TaxEvidenceReport["incomes"] }) {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+function ExpenseCategoryEditor({ categories }: { categories: string[] }) {
+  return (
+    <div className="mt-6 rounded-3xl border border-white/10 bg-black/20 p-4">
+      <h4 className="text-lg font-semibold text-white">Upravit kategorie</h4>
+      <div className="mt-4 grid gap-3">
+        {categories.map((category, index) => (
+          <div key={category} className="grid gap-2 rounded-2xl border border-white/10 bg-white/5 p-3">
+            <form action={saveExpenseCategory} className="grid gap-2 sm:grid-cols-[1fr_86px_auto]">
+              <input type="hidden" name="previous_name" value={category} />
+              <input name="name" className="admin-input" defaultValue={category} required />
+              <input
+                name="sort_order"
+                className="admin-input"
+                type="number"
+                defaultValue={index + 1}
+                min="0"
+              />
+              <button className="h-12 rounded-full bg-white/10 px-4 text-sm font-bold text-white transition-colors hover:bg-white/16">
+                Ulozit
+              </button>
+            </form>
+            <form action={deleteExpenseCategory}>
+              <input type="hidden" name="name" value={category} />
+              <button className="h-10 rounded-full border border-red-300/30 px-4 text-xs font-bold text-red-100 transition-colors hover:bg-red-400/15">
+                Smazat kategorii
+              </button>
+            </form>
+          </div>
+        ))}
+      </div>
+      <form action={saveExpenseCategory} className="mt-4 grid gap-2 sm:grid-cols-[1fr_86px_auto]">
+        <input name="name" className="admin-input" placeholder="Nova kategorie" required />
+        <input name="sort_order" className="admin-input" type="number" defaultValue={categories.length + 1} min="0" />
+        <button className="h-12 rounded-full bg-emerald-200 px-4 text-sm font-bold text-zinc-950 transition-colors hover:bg-white">
+          Pridat
+        </button>
+      </form>
     </div>
   );
 }

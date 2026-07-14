@@ -8,6 +8,7 @@ import { savePageAdminPassword, type PageAdminId } from "@/lib/page-admin";
 import { getSupabaseAuthServerClient, isAdminAuthenticated } from "@/lib/supabase-auth";
 import {
   expenseDocumentsBucket,
+  getExpenseCategories,
   isExpenseCategory,
 } from "@/lib/tax-evidence";
 
@@ -471,9 +472,10 @@ export async function saveExpense(formData: FormData) {
   const expenseDate = readField(formData, "expense_date", "");
   const title = readField(formData, "title", "");
   const supplier = readField(formData, "supplier_new", "") || readField(formData, "supplier_existing", "");
+  const categories = await getExpenseCategories();
   const year = expenseDate ? new Date(expenseDate).getFullYear() : new Date().getFullYear();
 
-  if (!expenseDate || !title || !Number.isFinite(amount) || amount < 0 || !isExpenseCategory(category)) {
+  if (!expenseDate || !title || !Number.isFinite(amount) || amount < 0 || !isExpenseCategory(category, categories)) {
     redirect(`${realAdminPath}?error=expense#danova-evidence`);
   }
 
@@ -498,6 +500,84 @@ export async function saveExpense(formData: FormData) {
 
   revalidatePath(realAdminPath);
   redirect(`${realAdminPath}?saved=expense&taxYear=${year}#danova-evidence`);
+}
+
+export async function saveExpenseCategory(formData: FormData) {
+  await requireAdmin();
+  const supabase = requireSupabase();
+  const previousName = readField(formData, "previous_name", "");
+  const name = readField(formData, "name", "");
+  const sortOrder = Number(formData.get("sort_order") || 0);
+
+  if (!name || !Number.isFinite(sortOrder)) {
+    redirect(`${realAdminPath}?error=expense-category#danova-evidence`);
+  }
+
+  if (previousName && previousName !== name) {
+    const { error: categoryError } = await supabase
+      .from("expense_categories")
+      .upsert(
+        { name, sort_order: sortOrder, updated_at: new Date().toISOString() },
+        { onConflict: "name" },
+      );
+
+    if (categoryError) {
+      redirect(`${realAdminPath}?error=expense-category#danova-evidence`);
+    }
+
+    const { error: expenseError } = await supabase
+      .from("expenses")
+      .update({ category: name, updated_at: new Date().toISOString() })
+      .eq("category", previousName);
+
+    if (expenseError) {
+      redirect(`${realAdminPath}?error=expense-category#danova-evidence`);
+    }
+
+    await supabase.from("expense_categories").delete().eq("name", previousName);
+  } else {
+    const { error } = await supabase
+      .from("expense_categories")
+      .upsert(
+        { name, sort_order: sortOrder, updated_at: new Date().toISOString() },
+        { onConflict: "name" },
+      );
+
+    if (error) {
+      redirect(`${realAdminPath}?error=expense-category#danova-evidence`);
+    }
+  }
+
+  revalidatePath(realAdminPath);
+  redirect(`${realAdminPath}?saved=expense-category#danova-evidence`);
+}
+
+export async function deleteExpenseCategory(formData: FormData) {
+  await requireAdmin();
+  const supabase = requireSupabase();
+  const name = readField(formData, "name", "");
+
+  if (!name) {
+    redirect(`${realAdminPath}?error=expense-category#danova-evidence`);
+  }
+
+  const { count, error: countError } = await supabase
+    .from("expenses")
+    .select("id", { count: "exact", head: true })
+    .eq("category", name);
+
+  if (countError || Number(count ?? 0) > 0) {
+    redirect(`${realAdminPath}?error=expense-category-used#danova-evidence`);
+  }
+
+  const { error } = await supabase.from("expense_categories").delete().eq("name", name);
+
+  if (error) {
+    redirect(`${realAdminPath}?error=expense-category#danova-evidence`);
+  }
+
+  revalidatePath(realAdminPath);
+  redirect(`${realAdminPath}?saved=delete-expense-category#danova-evidence`);
 }
 
 async function requireAdmin() {

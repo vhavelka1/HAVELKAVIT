@@ -3,7 +3,7 @@ import { getSupabaseAdminClient } from "@/lib/site-settings";
 
 export const expenseDocumentsBucket = "expense-documents";
 
-export const expenseCategories = [
+export const defaultExpenseCategories = [
   "Fototechnika",
   "Objektivy",
   "Paměťové karty",
@@ -14,7 +14,9 @@ export const expenseCategories = [
   "Ostatní",
 ] as const;
 
-export type ExpenseCategory = (typeof expenseCategories)[number];
+export const expenseCategories = defaultExpenseCategories;
+
+export type ExpenseCategory = string;
 
 export type Expense = {
   id: string;
@@ -38,6 +40,7 @@ export type CategorySummary = {
 
 export type TaxEvidenceReport = {
   year: number;
+  categories: ExpenseCategory[];
   incomes: Invoice[];
   expenses: Expense[];
   categorySummaries: CategorySummary[];
@@ -62,11 +65,15 @@ export function normalizeTaxYear(value: string | number | undefined, fallbackDat
 }
 
 export async function getTaxEvidenceReport(year: number): Promise<TaxEvidenceReport> {
-  const [invoices, expenses] = await Promise.all([getInvoices(), getExpenses(year)]);
+  const [invoices, expenses, categories] = await Promise.all([
+    getInvoices(),
+    getExpenses(year),
+    getExpenseCategories(),
+  ]);
   const incomes = invoices.filter((invoice) => new Date(invoice.issue_date).getFullYear() === year);
   const incomeTotal = incomes.reduce((total, invoice) => total + Number(invoice.total_amount), 0);
   const expenseTotal = expenses.reduce((total, expense) => total + Number(expense.amount), 0);
-  const categorySummaries = expenseCategories.map((category) => ({
+  const categorySummaries = mergeCategories(categories, expenses.map((expense) => expense.category)).map((category) => ({
     category,
     amount: expenses
       .filter((expense) => expense.category === category)
@@ -75,6 +82,7 @@ export async function getTaxEvidenceReport(year: number): Promise<TaxEvidenceRep
 
   return {
     year,
+    categories,
     incomes,
     expenses,
     categorySummaries,
@@ -91,6 +99,31 @@ export async function getAvailableTaxYears(invoices: Invoice[], expenses: Expens
   expenses.forEach((expense) => years.add(new Date(expense.expense_date).getFullYear()));
 
   return Array.from(years).sort((a, b) => b - a);
+}
+
+export async function getExpenseCategories() {
+  const supabase = getSupabaseAdminClient();
+
+  if (!supabase) {
+    return [...defaultExpenseCategories];
+  }
+
+  const { data, error } = await supabase
+    .from("expense_categories")
+    .select("name")
+    .order("sort_order", { ascending: true })
+    .order("name", { ascending: true });
+
+  if (error || !data || data.length === 0) {
+    return [...defaultExpenseCategories];
+  }
+
+  return mergeCategories(
+    data
+      .map((category) => String(category.name ?? "").trim())
+      .filter(Boolean),
+    [],
+  );
 }
 
 export async function getExpenses(year?: number) {
@@ -115,8 +148,8 @@ export async function getExpenses(year?: number) {
   return Promise.all((data as ExpenseRow[]).map((expense) => mapExpense(expense)));
 }
 
-export function isExpenseCategory(value: string): value is ExpenseCategory {
-  return expenseCategories.includes(value as ExpenseCategory);
+export function isExpenseCategory(value: string, categories: string[]): value is ExpenseCategory {
+  return categories.includes(value);
 }
 
 async function mapExpense(expense: ExpenseRow): Promise<Expense> {
@@ -128,7 +161,7 @@ async function mapExpense(expense: ExpenseRow): Promise<Expense> {
     title: expense.title,
     supplier: expense.supplier ?? "",
     amount: Number(expense.amount ?? 0),
-    category: isExpenseCategory(expense.category) ? expense.category : "Ostatní",
+    category: expense.category?.trim() || "Ostatní",
     note: expense.note ?? "",
     document_path: documentPath,
     document_name: expense.document_name ?? "",
@@ -154,4 +187,10 @@ async function createExpenseDocumentUrl(path: string) {
   }
 
   return data.signedUrl;
+}
+
+function mergeCategories(primary: string[], extra: string[]) {
+  return Array.from(
+    new Set([...primary, ...extra].map((category) => category.trim()).filter(Boolean)),
+  );
 }
