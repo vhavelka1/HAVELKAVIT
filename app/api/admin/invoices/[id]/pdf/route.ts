@@ -62,9 +62,9 @@ async function renderInvoicePdf(invoice: InvoicePdf) {
   });
 
   drawHeader(doc, logoDataUrl);
-  drawSupplierAndCustomer(doc, invoice);
-  drawDates(doc, invoice);
-  const paymentY = drawItems(doc, invoice);
+  const customerBlockBottom = drawSupplierAndCustomer(doc, invoice);
+  const datesBottom = drawDates(doc, invoice, Math.max(286, customerBlockBottom + 18));
+  const paymentY = drawItems(doc, invoice, Math.max(404, datesBottom + 54));
   drawPayment(doc, invoice, qrDataUrl, qrPayload, paymentY);
   drawFooter(doc);
 
@@ -87,6 +87,10 @@ function drawHeader(doc: PDFKit.PDFDocument, logoDataUrl: string) {
 
 function drawSupplierAndCustomer(doc: PDFKit.PDFDocument, invoice: InvoicePdf) {
   const y = 150;
+  const customerName = cleanPdfText(invoice.customer_name);
+  const customerAddress = cleanPdfText(invoice.customer_address);
+  const customerIco = cleanPdfText(invoice.customer_ico);
+  const customerDic = cleanPdfText(invoice.customer_dic);
 
   doc.fillColor("#111111").font("Geist").fontSize(9).text("DODAVATEL", 42, y);
   doc.fillColor("#111111").fontSize(13).text(supplier.name, 42, y + 18);
@@ -100,32 +104,39 @@ function drawSupplierAndCustomer(doc: PDFKit.PDFDocument, invoice: InvoicePdf) {
   const customerNameY = y + 18;
 
   doc.fillColor("#111111").font("Geist").fontSize(9).text("ODBĚRATEL", customerX, y);
-  doc.fillColor("#111111").fontSize(13).text(invoice.customer_name, customerX, customerNameY, {
+  doc.fillColor("#111111").fontSize(13).text(customerName, customerX, customerNameY, {
     width: customerWidth,
   });
   const customerAddressY =
     customerNameY +
-    doc.heightOfString(invoice.customer_name, { width: customerWidth }) +
+    doc.heightOfString(customerName, { width: customerWidth }) +
     8;
-  doc.fillColor("#374151").fontSize(9.5).text(invoice.customer_address, customerX, customerAddressY, {
+  doc.fillColor("#374151").fontSize(9.5).text(customerAddress, customerX, customerAddressY, {
     width: customerWidth,
   });
   const customerMetaY =
     customerAddressY +
-    doc.heightOfString(invoice.customer_address, { width: customerWidth }) +
+    doc.heightOfString(customerAddress, { width: customerWidth }) +
     15;
+  let customerBottom = customerMetaY;
 
-  if (invoice.customer_ico) {
-    doc.text(`IČ: ${invoice.customer_ico}`, customerX, customerMetaY, { width: customerWidth });
+  if (customerIco) {
+    doc.text(`IČ: ${customerIco}`, customerX, customerMetaY, { width: customerWidth });
   }
 
-  if (invoice.customer_dic) {
-    doc.text(`DIČ: ${invoice.customer_dic}`, customerX, customerMetaY + 15, { width: customerWidth });
+  if (customerDic) {
+    doc.text(`DIČ: ${customerDic}`, customerX, customerMetaY + 15, { width: customerWidth });
   }
+  if (customerDic) {
+    customerBottom = customerMetaY + 27;
+  } else if (customerIco) {
+    customerBottom = customerMetaY + 12;
+  }
+
+  return Math.max(y + 118, customerBottom);
 }
 
-function drawDates(doc: PDFKit.PDFDocument, invoice: InvoicePdf) {
-  const y = 286;
+function drawDates(doc: PDFKit.PDFDocument, invoice: InvoicePdf, y: number) {
   doc.roundedRect(42, y, 511, 64, 14).fill("#F8FAFC");
   doc.roundedRect(42, y, 511, 64, 14).strokeColor("#E5E7EB").lineWidth(1).stroke();
 
@@ -140,10 +151,11 @@ function drawDates(doc: PDFKit.PDFDocument, invoice: InvoicePdf) {
     doc.fillColor("#6B7280").font("Geist").fontSize(8.5).text(label, x, y + 18);
     doc.fillColor("#111111").fontSize(10.5).text(value, x, y + 39, { width: 104 });
   });
+
+  return y + 64;
 }
 
-function drawItems(doc: PDFKit.PDFDocument, invoice: InvoicePdf) {
-  const startY = 404;
+function drawItems(doc: PDFKit.PDFDocument, invoice: InvoicePdf, startY: number) {
   const tableX = 42;
 
   doc.roundedRect(tableX, startY, 511, 30, 8).fill("#111111");
@@ -223,6 +235,14 @@ function drawFooter(doc: PDFKit.PDFDocument) {
     lineBreak: false,
     width: 101,
   });
+}
+
+function cleanPdfText(value: string) {
+  return value
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "")
+    .trim();
 }
 
 function paymentQrPayload(invoice: InvoicePdf) {
