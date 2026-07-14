@@ -174,6 +174,7 @@ function AdminStatus({ error, saved }: { error?: string; saved?: string }) {
       "invoice-items": "Faktura musi mit alespon jednu platnou polozku.",
       expense: "Vydaj se nepodarilo ulozit. Zkontroluj tabulku expenses.",
       "expense-category": "Kategorii vydaju se nepodarilo ulozit. Zkontroluj tabulku expense_categories.",
+      "expense-category-missing-table": "Chybi tabulka expense_categories. Spust v Supabase SQL soubor supabase/expenses.sql.",
       "expense-category-used": "Kategorii nejde smazat, protoze je pouzita u existujicich vydaju.",
       "expense-document": "Doklad se nepodarilo nahrat. Povolen je PDF nebo obrazek do 10 MB.",
       "photo-category": "Fotografickou kategorii se nepodarilo ulozit. Zkontroluj tabulku photo_categories.",

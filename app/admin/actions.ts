@@ -10,6 +10,7 @@ import {
   expenseDocumentsBucket,
   getExpenseCategories,
   isExpenseCategory,
+  isMissingExpenseCategoriesTable,
 } from "@/lib/tax-evidence";
 
 const realAdminPath = "/login/fake";
@@ -519,9 +520,13 @@ export async function saveExpenseCategory(formData: FormData) {
       .upsert(
         { name, sort_order: sortOrder, updated_at: new Date().toISOString() },
         { onConflict: "name" },
-      );
+    );
 
     if (categoryError) {
+      if (isMissingExpenseCategoriesTable(categoryError)) {
+        redirect(`${realAdminPath}?error=expense-category-missing-table#danova-evidence`);
+      }
+
       redirect(`${realAdminPath}?error=expense-category#danova-evidence`);
     }
 
@@ -544,6 +549,10 @@ export async function saveExpenseCategory(formData: FormData) {
       );
 
     if (error) {
+      if (isMissingExpenseCategoriesTable(error)) {
+        redirect(`${realAdminPath}?error=expense-category-missing-table#danova-evidence`);
+      }
+
       redirect(`${realAdminPath}?error=expense-category#danova-evidence`);
     }
   }
@@ -590,6 +599,11 @@ export async function deleteExpenseCategory(formData: FormData) {
   const { error } = await supabase.from("expense_categories").delete().eq("name", name);
 
   if (error) {
+    if (isMissingExpenseCategoriesTable(error)) {
+      revalidatePath(realAdminPath);
+      redirect(`${realAdminPath}?saved=delete-expense-category#danova-evidence`);
+    }
+
     redirect(`${realAdminPath}?error=expense-category#danova-evidence`);
   }
 

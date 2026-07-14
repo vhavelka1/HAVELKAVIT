@@ -114,6 +114,10 @@ export async function getExpenseCategories() {
     .order("sort_order", { ascending: true })
     .order("name", { ascending: true });
 
+  if (isMissingExpenseCategoriesTable(error)) {
+    return getExpenseCategoriesFromExpenses();
+  }
+
   if (error || !data || data.length === 0) {
     return [...defaultExpenseCategories];
   }
@@ -123,6 +127,38 @@ export async function getExpenseCategories() {
       .map((category) => String(category.name ?? "").trim())
       .filter(Boolean),
     [],
+  );
+}
+
+async function getExpenseCategoriesFromExpenses() {
+  const supabase = getSupabaseAdminClient();
+
+  if (!supabase) {
+    return [...defaultExpenseCategories];
+  }
+
+  const { data, error } = await supabase.from("expenses").select("category").order("category");
+
+  if (error || !data) {
+    return [...defaultExpenseCategories];
+  }
+
+  const categories = mergeCategories(
+    data.map((expense) => String(expense.category ?? "").trim()),
+    ["Ostatní"],
+  );
+
+  return categories.length > 0 ? categories : [...defaultExpenseCategories];
+}
+
+export function isMissingExpenseCategoriesTable(error: { message?: string | null; code?: string | null } | null) {
+  return Boolean(
+    error &&
+      (
+        error.code === "PGRST205" ||
+        error.message?.includes("expense_categories") ||
+        error.message?.includes("schema cache")
+      ),
   );
 }
 
