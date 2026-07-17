@@ -1,15 +1,17 @@
 import Link from "next/link";
-import { getMemoryThemes } from "@/lib/adamek";
-import { isPageAdminAuthenticated } from "@/lib/page-admin";
-import { PageAdminLogin } from "@/components/page-admin-login";
 import { logoutPageAdmin } from "@/app/page-admin-actions";
+import { PageAdminLogin } from "@/components/page-admin-login";
+import { getMemoryThemes } from "@/lib/adamek";
+import { getAllHolidayDiaryEntries } from "@/lib/adamek-holiday-diary";
+import { isPageAdminAuthenticated } from "@/lib/page-admin";
+import { HolidayDiaryAdmin } from "./holiday-diary-admin";
 import { MemoryThemeAdmin } from "./theme-admin";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Adámek | Administrace pexesa",
-  description: "Chráněná administrace témat a obrázků pro Adamovo pexeso.",
+  title: "Adámek | Administrace",
+  description: "Chráněná administrace Adámkových her a prázdninového deníku.",
 };
 
 export default async function AdamekAdminPage({
@@ -27,13 +29,13 @@ export default async function AdamekAdminPage({
       <PageAdminLogin
         pageId="adamek"
         title="Administrace Adámka"
-        subtitle="Zadej jednoduché heslo pro správu pexesa."
+        subtitle="Zadej jednoduché heslo pro správu pexesa a prázdninového deníku."
         showError={params.error === "login"}
       />
     );
   }
 
-  const themes = await getMemoryThemes();
+  const [themes, diaryEntries] = await Promise.all([getMemoryThemes(), getAllHolidayDiaryEntries()]);
 
   return (
     <main className="min-h-screen bg-[#06111f] text-white">
@@ -44,7 +46,7 @@ export default async function AdamekAdminPage({
             <p className="font-mono text-xs uppercase tracking-[0.28em] text-yellow-200">
               chráněná správa
             </p>
-            <h1 className="mt-2 text-4xl font-black tracking-tight">Administrace pexesa</h1>
+            <h1 className="mt-2 text-4xl font-black tracking-tight">Administrace Adámka</h1>
           </div>
           <div className="flex flex-wrap gap-3">
             <Link
@@ -64,6 +66,7 @@ export default async function AdamekAdminPage({
 
         <AdminStatus error={params.error} saved={params.saved} />
         <MemoryThemeAdmin themes={themes} />
+        <HolidayDiaryAdmin entries={diaryEntries} />
       </div>
     </main>
   );
@@ -75,6 +78,12 @@ function AdminStatus({ error, saved }: { error?: string; saved?: string }) {
       "supabase-admin-key": "Ukládání potřebuje SUPABASE_SERVICE_ROLE_KEY v .env.local nebo na Vercelu.",
       "theme-name": "Téma musí mít název.",
       "save-image": "Obrázek se nepodařilo uložit. Zkontroluj Storage oprávnění.",
+      "diary-required": "Datum, název a popis jsou povinné.",
+      "diary-date": "Deník povoluje pouze dny v červenci a srpnu.",
+      "diary-duplicate": "Pro tento den už existuje jeden zážitek. Uprav ho, nebo vyber jiné datum.",
+      "diary-image": "Fotografii se nepodařilo uložit. Zkontroluj Storage bucket adamek-holiday-diary.",
+      "diary-save": "Zážitek se nepodařilo uložit. Zkontroluj tabulku adamek_holiday_entries.",
+      "diary-delete": "Zážitek se nepodařilo smazat.",
     };
     const message = messages[error] ?? "Změnu se nepodařilo uložit. Zkontroluj Supabase tabulky a oprávnění.";
 
@@ -88,7 +97,7 @@ function AdminStatus({ error, saved }: { error?: string; saved?: string }) {
   if (saved) {
     return (
       <div className="mb-8 rounded-3xl border border-lime-200/20 bg-lime-200/10 px-5 py-4 text-sm font-semibold text-lime-50">
-        Uloženo. Pexeso je obnovené.
+        Uloženo. Adámkova administrace je obnovená.
       </div>
     );
   }

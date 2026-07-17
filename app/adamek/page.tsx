@@ -11,6 +11,16 @@ const games = [
     description: "Barevné pexeso s vlastními tématy a velkými kartami.",
     href: "/adamek/pexeso",
     accent: "from-yellow-300 via-orange-300 to-pink-300",
+    icon: "🙂",
+    action: "Hrát",
+  },
+  {
+    title: "Prázdninový deník",
+    description: "Letní kalendář zážitků s fotkami, vzpomínkami a výlety.",
+    href: "/adamek/prazdninovy-denik",
+    accent: "from-sky-300 via-lime-300 to-yellow-200",
+    icon: "📸",
+    action: "Otevřít",
   },
 ];
 
@@ -42,7 +52,7 @@ export default function AdamekPage() {
             Adamův Playground
           </h1>
           <p className="mt-6 max-w-2xl text-lg leading-8 text-sky-50">
-            Místo pro hry, objevování a malé projekty. První připravená hra je pexeso.
+            Místo pro hry, objevování a malé projekty. Vyber si pexeso nebo se podívej do prázdninového deníku.
           </p>
 
           <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -55,12 +65,12 @@ export default function AdamekPage() {
                 <div
                   className={`grid size-18 place-items-center rounded-[1.5rem] bg-gradient-to-br ${game.accent} text-4xl shadow-xl shadow-black/25`}
                 >
-                  🙂
+                  {game.icon}
                 </div>
                 <h2 className="mt-6 text-3xl font-black text-white">{game.title}</h2>
                 <p className="mt-3 text-base leading-7 text-sky-100">{game.description}</p>
                 <span className="mt-6 inline-flex h-12 items-center rounded-full bg-white px-5 text-sm font-black text-slate-950 transition-colors group-hover:bg-yellow-200">
-                  Hrát
+                  {game.action}
                 </span>
               </Link>
             ))}

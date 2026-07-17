@@ -3,11 +3,13 @@
 import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { holidayDiaryBucket, isHolidayDiaryDate } from "@/lib/adamek-holiday-diary";
 import { isPageAdminAuthenticated } from "@/lib/page-admin";
 import { getSupabaseAdminClient } from "@/lib/site-settings";
 
 const adminPath = "/adamek/admin";
 const bucketName = "adamek-memory";
+const diaryAdminHash = "#prazdninovy-denik";
 
 export async function saveMemoryTheme(formData: FormData) {
   await requireAdmin();
@@ -104,6 +106,86 @@ export async function deleteThemeImage(formData: FormData) {
   redirect(`${adminPath}?saved=delete-image`);
 }
 
+export async function saveHolidayDiaryEntry(formData: FormData) {
+  await requireAdmin();
+  const supabase = requireSupabase();
+  const id = String(formData.get("id") || "").trim();
+  const entryDate = String(formData.get("entry_date") || "").trim();
+  const title = String(formData.get("title") || "").trim();
+  const description = String(formData.get("description") || "").trim();
+  const existingStoragePath = String(formData.get("existing_storage_path") || "").trim();
+  const existingImageUrl = String(formData.get("existing_image_url") || "").trim();
+  const removeImage = formData.get("remove_image") === "on";
+  const imageWidth = toOptionalNumber(formData.get("image_width"));
+  const imageHeight = toOptionalNumber(formData.get("image_height"));
+
+  if (!entryDate || !title || !description) {
+    redirect(`${adminPath}?error=diary-required${diaryAdminHash}`);
+  }
+
+  if (!isHolidayDiaryDate(entryDate)) {
+    redirect(`${adminPath}?error=diary-date${diaryAdminHash}`);
+  }
+
+  const replacement = await uploadDiaryImage(formData, supabase);
+  const shouldRemoveOldImage = Boolean(existingStoragePath && (removeImage || replacement));
+
+  const payload = {
+    entry_date: entryDate,
+    title,
+    description,
+    image_url: replacement?.publicUrl ?? (removeImage ? null : existingImageUrl || null),
+    storage_path: replacement?.path ?? (removeImage ? null : existingStoragePath || null),
+    image_width: replacement ? imageWidth : removeImage ? null : imageWidth,
+    image_height: replacement ? imageHeight : removeImage ? null : imageHeight,
+    is_active: formData.get("is_active") === "on",
+    updated_at: new Date().toISOString(),
+  };
+
+  const result = id
+    ? await supabase.from("adamek_holiday_entries").update(payload).eq("id", id)
+    : await supabase.from("adamek_holiday_entries").insert(payload);
+
+  if (result.error) {
+    if (result.error.code === "23505") {
+      redirect(`${adminPath}?error=diary-duplicate${diaryAdminHash}`);
+    }
+
+    redirect(`${adminPath}?error=diary-save${diaryAdminHash}`);
+  }
+
+  if (shouldRemoveOldImage) {
+    await removeDiaryStorageImage(existingStoragePath, supabase);
+  }
+
+  revalidateAdamek();
+  redirect(`${adminPath}?saved=diary${diaryAdminHash}`);
+}
+
+export async function deleteHolidayDiaryEntry(formData: FormData) {
+  await requireAdmin();
+  const supabase = requireSupabase();
+  const id = String(formData.get("id") || "").trim();
+  const storagePath = String(formData.get("storage_path") || "").trim();
+
+  if (!id) {
+    redirect(`${adminPath}${diaryAdminHash}`);
+  }
+
+  const { error } = await supabase.from("adamek_holiday_entries").delete().eq("id", id);
+
+  if (error) {
+    redirect(`${adminPath}?error=diary-delete${diaryAdminHash}`);
+  }
+
+  if (storagePath) {
+    await removeDiaryStorageImage(storagePath, supabase);
+  }
+
+  revalidateAdamek();
+  redirect(`${adminPath}?saved=delete-diary${diaryAdminHash}`);
+}
+
 async function requireAdmin() {
   if (!(await isPageAdminAuthenticated("adamek"))) {
     redirect(adminPath);
@@ -174,6 +256,47 @@ async function uploadThemeImages(
   return publicUrls;
 }
 
+async function uploadDiaryImage(
+  formData: FormData,
+  supabase: NonNullable<ReturnType<typeof getSupabaseAdminClient>>,
+) {
+  const file = formData.get("image_file");
+
+  if (!(file instanceof File) || file.size === 0) {
+    return null;
+  }
+
+  const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+
+  if (!allowedTypes.includes(file.type)) {
+    redirect(`${adminPath}?error=diary-image${diaryAdminHash}`);
+  }
+
+  const bucketReady = await ensureDiaryBucket(supabase);
+
+  if (!bucketReady) {
+    redirect(`${adminPath}?error=diary-image${diaryAdminHash}`);
+  }
+
+  const path = `entries/${Date.now()}-${randomUUID()}${extensionFromFile(file)}`;
+  const bytes = Buffer.from(await file.arrayBuffer());
+  const { error } = await supabase.storage.from(holidayDiaryBucket).upload(path, bytes, {
+    contentType: file.type,
+    upsert: false,
+  });
+
+  if (error) {
+    redirect(`${adminPath}?error=diary-image${diaryAdminHash}`);
+  }
+
+  const { data } = supabase.storage.from(holidayDiaryBucket).getPublicUrl(path);
+
+  return {
+    path,
+    publicUrl: data.publicUrl,
+  };
+}
+
 async function ensureBucket(supabase: NonNullable<ReturnType<typeof getSupabaseAdminClient>>) {
   const { error: getError } = await supabase.storage.getBucket(bucketName);
 
@@ -185,6 +308,22 @@ async function ensureBucket(supabase: NonNullable<ReturnType<typeof getSupabaseA
     public: true,
     fileSizeLimit: "10MB",
     allowedMimeTypes: ["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif", "image/svg+xml"],
+  });
+
+  return !createError;
+}
+
+async function ensureDiaryBucket(supabase: NonNullable<ReturnType<typeof getSupabaseAdminClient>>) {
+  const { error: getError } = await supabase.storage.getBucket(holidayDiaryBucket);
+
+  if (!getError) {
+    return true;
+  }
+
+  const { error: createError } = await supabase.storage.createBucket(holidayDiaryBucket, {
+    public: true,
+    fileSizeLimit: "8MB",
+    allowedMimeTypes: ["image/jpeg", "image/png", "image/webp"],
   });
 
   return !createError;
@@ -205,6 +344,17 @@ async function removeStorageImage(
   await supabase.storage.from(bucketName).remove([path]);
 }
 
+async function removeDiaryStorageImage(
+  storagePath: string,
+  supabase: NonNullable<ReturnType<typeof getSupabaseAdminClient>>,
+) {
+  if (!storagePath) {
+    return;
+  }
+
+  await supabase.storage.from(holidayDiaryBucket).remove([storagePath]);
+}
+
 function extensionFromFile(file: File) {
   const extension = file.name.split(".").pop()?.toLowerCase();
 
@@ -221,9 +371,15 @@ function extensionFromFile(file: File) {
   return ".jpg";
 }
 
+function toOptionalNumber(value: FormDataEntryValue | null) {
+  const number = Number(value);
+  return Number.isFinite(number) && number > 0 ? number : null;
+}
+
 function revalidateAdamek() {
   revalidatePath("/");
   revalidatePath("/adamek");
   revalidatePath("/adamek/pexeso");
+  revalidatePath("/adamek/prazdninovy-denik");
   revalidatePath(adminPath);
 }
