@@ -116,7 +116,6 @@ export function HolidayDiaryAdmin({ entries }: { entries: HolidayDiaryEntry[] })
                     {formatCzechDate(entry.entryDate)} | {entry.isActive ? "aktivní" : "skryté"}
                   </p>
                   <h4 className="mt-1 text-2xl font-black text-white">{entry.title}</h4>
-                  <p className="mt-2 line-clamp-2 text-sm leading-6 text-sky-100/75">{entry.description}</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <button
@@ -265,13 +264,6 @@ function HolidayDiaryForm({
           Název zážitku
         </span>
         <input name="title" defaultValue={entry?.title ?? ""} required className="admin-input" />
-      </label>
-
-      <label className="grid gap-2 lg:col-span-2">
-        <span className="font-mono text-xs uppercase tracking-[0.18em] text-violet-200">
-          Popis
-        </span>
-        <textarea name="description" defaultValue={entry?.description ?? ""} required className="admin-input min-h-36" />
       </label>
 
       <label className="grid gap-2 lg:col-span-2">

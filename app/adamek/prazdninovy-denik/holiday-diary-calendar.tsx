@@ -160,9 +160,6 @@ export function HolidayDiaryCalendar({
                   {entry ? (
                     <>
                       <p className="line-clamp-2 text-sm font-black leading-5">{entry.title}</p>
-                      <p className="mt-1 hidden line-clamp-2 text-xs font-bold text-sky-950/72 sm:block">
-                        {entry.description}
-                      </p>
                     </>
                   ) : (
                     <span className="text-xs font-bold">volno</span>
@@ -200,10 +197,6 @@ export function HolidayDiaryCalendar({
                   {formatCzechDate(activeEntry.entryDate)}
                 </p>
                 <h3 className="mt-3 text-4xl font-black leading-tight">{activeEntry.title}</h3>
-                <p className="mt-5 whitespace-pre-line text-base leading-8 text-sky-950/78">
-                  {activeEntry.description}
-                </p>
-
                 <div className="mt-8 flex flex-wrap gap-3">
                   <button
                     type="button"

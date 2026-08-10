@@ -35,7 +35,7 @@ export default async function AdamekAdminPage({
     );
   }
 
-  const [themes, diaryEntries] = await Promise.all([getMemoryThemes(), getAllHolidayDiaryEntries()]);
+  const [themes, diaryResult] = await Promise.all([getMemoryThemes(), getAllHolidayDiaryEntries()]);
 
   return (
     <main className="min-h-screen bg-[#06111f] text-white">
@@ -66,7 +66,12 @@ export default async function AdamekAdminPage({
 
         <AdminStatus error={params.error} saved={params.saved} />
         <MemoryThemeAdmin themes={themes} />
-        <HolidayDiaryAdmin entries={diaryEntries} />
+        {diaryResult.error ? (
+          <div className="mt-8 rounded-3xl border border-yellow-200/20 bg-yellow-200/10 px-5 py-4 text-sm font-semibold text-yellow-50">
+            Prázdninový deník se nepodařilo načíst: {diaryResult.error}
+          </div>
+        ) : null}
+        <HolidayDiaryAdmin entries={diaryResult.entries} />
       </div>
     </main>
   );
@@ -78,7 +83,7 @@ function AdminStatus({ error, saved }: { error?: string; saved?: string }) {
       "supabase-admin-key": "Ukládání potřebuje SUPABASE_SERVICE_ROLE_KEY v .env.local nebo na Vercelu.",
       "theme-name": "Téma musí mít název.",
       "save-image": "Obrázek se nepodařilo uložit. Zkontroluj Storage oprávnění.",
-      "diary-required": "Datum, název a popis jsou povinné.",
+      "diary-required": "Datum a název zážitku jsou povinné.",
       "diary-date": "Deník povoluje pouze dny v červenci a srpnu.",
       "diary-duplicate": "Pro tento den už existuje jeden zážitek. Uprav ho, nebo vyber jiné datum.",
       "diary-image": "Fotografii se nepodařilo uložit. Zkontroluj Storage bucket adamek-holiday-diary.",

@@ -58,11 +58,11 @@ export async function getActiveHolidayDiaryEntries(): Promise<HolidayDiaryLoadRe
   return { entries: mapHolidayDiaryRows(data as HolidayDiaryEntryRow[]) };
 }
 
-export async function getAllHolidayDiaryEntries(): Promise<HolidayDiaryEntry[]> {
+export async function getAllHolidayDiaryEntries(): Promise<HolidayDiaryLoadResult> {
   const supabase = getSupabaseAdminClient();
 
   if (!supabase) {
-    return [];
+    return { entries: [], error: "Ukládání potřebuje SUPABASE_SERVICE_ROLE_KEY." };
   }
 
   const { data, error } = await supabase
@@ -71,10 +71,13 @@ export async function getAllHolidayDiaryEntries(): Promise<HolidayDiaryEntry[]> 
     .order("entry_date", { ascending: true });
 
   if (error || !data) {
-    return [];
+    return {
+      entries: [],
+      error: error?.message ?? "Prázdninový deník se nepodařilo načíst.",
+    };
   }
 
-  return mapHolidayDiaryRows(data as HolidayDiaryEntryRow[]);
+  return { entries: mapHolidayDiaryRows(data as HolidayDiaryEntryRow[]) };
 }
 
 export function isHolidayDiaryDate(value: string) {
@@ -123,9 +126,8 @@ function mapHolidayDiaryRow(row: HolidayDiaryEntryRow): HolidayDiaryEntry | unde
   const id = String(row.id ?? "").trim();
   const entryDate = String(row.entry_date ?? "").trim();
   const title = String(row.title ?? "").trim();
-  const description = String(row.description ?? "").trim();
 
-  if (!id || !entryDate || !title || !description) {
+  if (!id || !entryDate || !title) {
     return undefined;
   }
 
@@ -133,7 +135,7 @@ function mapHolidayDiaryRow(row: HolidayDiaryEntryRow): HolidayDiaryEntry | unde
     id,
     entryDate,
     title,
-    description,
+    description: String(row.description ?? "").trim() || title,
     imageUrl: String(row.image_url ?? "").trim(),
     storagePath: String(row.storage_path ?? "").trim(),
     imageWidth: row.image_width ?? null,

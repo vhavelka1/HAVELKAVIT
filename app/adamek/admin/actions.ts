@@ -112,14 +112,14 @@ export async function saveHolidayDiaryEntry(formData: FormData) {
   const id = String(formData.get("id") || "").trim();
   const entryDate = String(formData.get("entry_date") || "").trim();
   const title = String(formData.get("title") || "").trim();
-  const description = String(formData.get("description") || "").trim();
+  const description = title;
   const existingStoragePath = String(formData.get("existing_storage_path") || "").trim();
   const existingImageUrl = String(formData.get("existing_image_url") || "").trim();
   const removeImage = formData.get("remove_image") === "on";
   const imageWidth = toOptionalNumber(formData.get("image_width"));
   const imageHeight = toOptionalNumber(formData.get("image_height"));
 
-  if (!entryDate || !title || !description) {
+  if (!entryDate || !title) {
     redirect(`${adminPath}?error=diary-required${diaryAdminHash}`);
   }
 

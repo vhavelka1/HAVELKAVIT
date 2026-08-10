@@ -4,7 +4,7 @@ create table if not exists public.adamek_holiday_entries (
   id uuid primary key default gen_random_uuid(),
   entry_date date not null unique,
   title text not null,
-  description text not null,
+  description text not null default '',
   image_url text,
   storage_path text,
   image_width integer,
@@ -16,8 +16,6 @@ create table if not exists public.adamek_holiday_entries (
     check (extract(month from entry_date) in (7, 8)),
   constraint adamek_holiday_entries_title_check
     check (length(trim(title)) > 0),
-  constraint adamek_holiday_entries_description_check
-    check (length(trim(description)) > 0),
   constraint adamek_holiday_entries_image_width_check
     check (image_width is null or image_width > 0),
   constraint adamek_holiday_entries_image_height_check
@@ -42,6 +40,10 @@ for each row
 execute function public.set_adamek_holiday_entries_updated_at();
 
 alter table public.adamek_holiday_entries enable row level security;
+
+grant usage on schema public to anon, authenticated, service_role;
+grant select on public.adamek_holiday_entries to anon, authenticated;
+grant all privileges on public.adamek_holiday_entries to service_role;
 
 drop policy if exists "Public can read active Adamek holiday entries" on public.adamek_holiday_entries;
 
