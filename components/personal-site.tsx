@@ -417,9 +417,9 @@ function TopicPanel({ topic, language, title, posts, onClose }: TopicPanelProps)
               Prohlížej
             </Link>
           ) : null}
-          {topic.slug === "marcelka" ? (
+          {topic.slug === "zs" ? (
             <Link
-              href="/marcelka/psani-na-klavesnici"
+              href="/zs/psani-na-klavesnici"
               className="group flex items-center gap-4 rounded-lg border border-teal-200/25 bg-teal-200/10 p-4 transition-colors hover:border-teal-200/60 hover:bg-teal-200/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-200"
             >
               <Keyboard className="size-8 shrink-0 text-teal-200" aria-hidden="true" />

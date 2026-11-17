@@ -4,7 +4,7 @@ import { KeyboardTypingGame } from "./typing-game";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Psaní na klávesnici | Marcelka",
+  title: "Psaní na klávesnici | ZŠ Aktivity",
   description: "Hravé procvičování psaní znaků na české klávesnici.",
 };
 

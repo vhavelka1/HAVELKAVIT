@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
+import { inappropriateNicknameMessage, isInappropriateNickname } from "@/lib/nickname";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   calculateTypingMetrics,
@@ -229,7 +230,7 @@ export function KeyboardTypingGame({ initialResults }: { initialResults: TypingR
       params.set("className", classFilter.trim());
     }
 
-    void fetch(`/api/marcelka/typing-results?${params.toString()}`)
+    void fetch(`/api/zs/typing-results?${params.toString()}`)
       .then((response) => (response.ok ? response.json() : undefined))
       .then((payload: { results?: TypingResult[] } | undefined) => {
         if (Array.isArray(payload?.results)) {
@@ -251,6 +252,11 @@ export function KeyboardTypingGame({ initialResults }: { initialResults: TypingR
 
     if (!cleanName) {
       setMessage("Nejdříve napiš jméno nebo přezdívku.");
+      return;
+    }
+
+    if (isInappropriateNickname(cleanName)) {
+      setMessage(inappropriateNicknameMessage);
       return;
     }
 
@@ -300,7 +306,7 @@ export function KeyboardTypingGame({ initialResults }: { initialResults: TypingR
       <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 py-5 sm:px-6 lg:px-8">
         <header className="flex flex-wrap items-center justify-between gap-3">
           <Link
-            href="/marcelka"
+            href="/zs"
             className="inline-flex h-12 items-center gap-2 rounded-full border border-white/14 bg-white/10 px-4 text-sm font-bold text-white shadow-xl shadow-black/25 backdrop-blur-md transition-colors hover:bg-white/16"
           >
             <ArrowLeft className="size-5" aria-hidden="true" />
@@ -464,7 +470,7 @@ function SetupScreen({
               <Keyboard className="size-10" aria-hidden="true" />
             </div>
             <p className="mt-7 font-mono text-xs uppercase tracking-[0.32em] text-cyan-200">
-              Marcelka / trénink
+              ZŠ Aktivity / trénink
             </p>
             <h1 className="mt-3 text-5xl font-black leading-none text-white drop-shadow-[0_5px_0_rgba(20,184,166,0.35)] sm:text-7xl">
               Psaní na klávesnici
@@ -538,7 +544,7 @@ function SetupScreen({
             </div>
 
             {message ? (
-              <p className="mt-5 rounded-2xl border border-amber-200/30 bg-amber-200/12 px-4 py-3 text-sm font-bold text-amber-50">
+              <p role="alert" className="mt-5 rounded-2xl border border-amber-200/30 bg-amber-200/12 px-4 py-3 text-sm font-bold text-amber-50">
                 {message}
               </p>
             ) : null}
@@ -639,7 +645,7 @@ function FinishedScreen({
             Žebříček
           </button>
           <Link
-            href="/marcelka"
+            href="/zs"
             className="inline-flex h-13 items-center gap-2 rounded-full border border-white/14 bg-white/10 px-5 text-sm font-black text-white shadow-xl shadow-black/20 backdrop-blur-md"
           >
             <ArrowLeft className="size-5" aria-hidden="true" />
@@ -839,7 +845,7 @@ function LeaderboardPanel({
 }
 
 async function saveResult(result: TypingResult) {
-  const response = await fetch("/api/marcelka/typing-results", {
+  const response = await fetch("/api/zs/typing-results", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

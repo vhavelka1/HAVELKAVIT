@@ -132,10 +132,10 @@ export const topicSeeds: Topic[] = [
       "https://images.unsplash.com/photo-1606092195730-5d7b9af1efc5?auto=format&fit=crop&w=1200&q=80",
   },
   {
-    id: "marcelka",
-    slug: "marcelka",
-    title_cs: "Marcelka",
-    title_en: "Marcelka",
+    id: "zs",
+    slug: "zs",
+    title_cs: "ZŠ Aktivity",
+    title_en: "ZŠ Aktivity",
     description_cs:
       "Rozcestník výukových aplikací pro školní děti, kde se učení potkává s hravým tréninkem.",
     description_en:
@@ -152,6 +152,8 @@ const slugAliases = new Map<string, string>(
     [slugify(topic.title_cs), topic.slug],
   ]),
 );
+
+slugAliases.set("marcelka", "zs");
 
 export async function getTopics(): Promise<Topic[]> {
   const supabase = getSupabaseServerClient();
@@ -187,8 +189,8 @@ export function mapTopicRow(row: SupabaseTopicRow): Topic | undefined {
   return {
     id: String(row.id ?? slug),
     slug,
-    title_cs: row.title_cs || seed?.title_cs || row.label || slug,
-    title_en: row.title_en || row.label || seed?.title_en || slug,
+    title_cs: slug === "zs" ? "ZŠ Aktivity" : row.title_cs || seed?.title_cs || row.label || slug,
+    title_en: slug === "zs" ? "ZŠ Aktivity" : row.title_en || row.label || seed?.title_en || slug,
     description_cs: row.description_cs || seed?.description_cs || "",
     description_en: row.description_en || seed?.description_en || "",
     image_url: row.image_url || row.image || seed?.image_url || "",
@@ -223,7 +225,7 @@ export function slugify(value: string) {
 }
 
 export function mergeRequiredSeeds<T extends Topic>(topics: T[]) {
-  const requiredSlugs = ["emicka", "adamek", "marcelka"];
+  const requiredSlugs = ["emicka", "adamek", "zs"];
   const merged: Topic[] = [...topics];
 
   for (const slug of requiredSlugs) {

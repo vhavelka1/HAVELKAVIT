@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { inappropriateNicknameMessage, isInappropriateNickname } from "@/lib/nickname";
 import {
   calculateTypingMetrics,
   getTypingResults,
@@ -32,12 +33,6 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const supabase = getSupabaseAdminClient();
-
-  if (!supabase) {
-    return NextResponse.json({ error: "Supabase admin client is not configured." }, { status: 503 });
-  }
-
   const body = await request.json().catch(() => null);
   const playerName = normalizeRequiredText(body?.playerName, 40);
   const school = normalizeOptionalText(body?.school, 60);
@@ -46,6 +41,10 @@ export async function POST(request: Request) {
   const elapsedMs = Number(body?.elapsedMs);
   const mistakes = Number(body?.mistakes);
   const maxCombo = Number(body?.maxCombo);
+
+  if (playerName && isInappropriateNickname(playerName)) {
+    return NextResponse.json({ error: inappropriateNicknameMessage }, { status: 400 });
+  }
 
   if (
     !playerName ||
@@ -61,6 +60,12 @@ export async function POST(request: Request) {
     maxCombo > typingRoundLength
   ) {
     return NextResponse.json({ error: "Invalid typing result payload." }, { status: 400 });
+  }
+
+  const supabase = getSupabaseAdminClient();
+
+  if (!supabase) {
+    return NextResponse.json({ error: "Supabase admin client is not configured." }, { status: 503 });
   }
 
   const metrics = calculateTypingMetrics({

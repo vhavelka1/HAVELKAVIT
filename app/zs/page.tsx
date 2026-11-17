@@ -2,7 +2,7 @@ import { ArrowLeft, Keyboard, Sparkles } from "lucide-react";
 import Link from "next/link";
 
 export const metadata = {
-  title: "Marcelka | Výukové aplikace",
+  title: "ZŠ Aktivity | Výukové aplikace",
   description: "Rozcestník výukových aplikací pro školní děti.",
 };
 
@@ -11,14 +11,14 @@ const apps = [
     title: "Psaní na klávesnici",
     description:
       "Procvičej jednotlivé znaky na české klávesnici, sbírej combo a zapiš se do žebříčku.",
-    href: "/marcelka/psani-na-klavesnici",
+    href: "/zs/psani-na-klavesnici",
     accent: "from-cyan-300 via-lime-200 to-yellow-200",
     icon: Keyboard,
     action: "Spustit",
   },
 ];
 
-export default function MarcelkaPage() {
+export default function SchoolActivitiesPage() {
   return (
     <main className="min-h-screen overflow-hidden bg-[#07111f] text-white">
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_16%_20%,rgba(34,211,238,0.24),transparent_24rem),radial-gradient(circle_at_84%_22%,rgba(190,242,100,0.22),transparent_28rem),radial-gradient(circle_at_52%_92%,rgba(251,191,36,0.18),transparent_30rem)]" />
@@ -39,7 +39,7 @@ export default function MarcelkaPage() {
 
         <section className="flex flex-1 flex-col justify-center py-12">
           <p className="font-mono text-xs uppercase tracking-[0.32em] text-cyan-200">
-            Marcelčin školní koutek
+            ZŠ Aktivity
           </p>
           <h1 className="mt-4 max-w-4xl text-5xl font-black leading-none text-white drop-shadow-[0_6px_0_rgba(8,145,178,0.35)] sm:text-7xl">
             Hry, které pomáhají trénovat
