@@ -131,6 +131,18 @@ export const topicSeeds: Topic[] = [
     image_url:
       "https://images.unsplash.com/photo-1606092195730-5d7b9af1efc5?auto=format&fit=crop&w=1200&q=80",
   },
+  {
+    id: "marcelka",
+    slug: "marcelka",
+    title_cs: "Marcelka",
+    title_en: "Marcelka",
+    description_cs:
+      "Rozcestnik vyukovych aplikaci pro skolni deti, kde se uceni potkava s hravym treninkem.",
+    description_en:
+      "A learning apps hub for school children, where practice meets playful training.",
+    image_url:
+      "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=1200&q=80",
+  },
 ];
 
 const slugAliases = new Map<string, string>(
@@ -211,7 +223,7 @@ export function slugify(value: string) {
 }
 
 export function mergeRequiredSeeds<T extends Topic>(topics: T[]) {
-  const requiredSlugs = ["emicka", "adamek"];
+  const requiredSlugs = ["emicka", "adamek", "marcelka"];
   const merged: Topic[] = [...topics];
 
   for (const slug of requiredSlugs) {

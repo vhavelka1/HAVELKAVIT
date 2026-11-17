@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { Languages, X } from "lucide-react";
+import { ArrowRight, Keyboard, Languages, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -195,6 +195,7 @@ function NodeNetwork({ topics, language, selectedTopic, onSelect }: NodeNetworkP
       { x: 61, y: 48 },
       { x: 49, y: 51 },
       { x: 84, y: 57 },
+      { x: 31, y: 16 },
     ];
 
     return topics.map((topic, index) => ({
@@ -222,6 +223,10 @@ function NodeNetwork({ topics, language, selectedTopic, onSelect }: NodeNetworkP
     [1, 9],
     [2, 9],
     [7, 9],
+    [0, 10],
+    [5, 10],
+    [6, 10],
+    [8, 10],
   ];
 
   return (
@@ -330,7 +335,7 @@ function TopicPanel({ topic, language, title, posts, onClose }: TopicPanelProps)
         exit={{ opacity: 0 }}
       />
       <motion.aside
-        className="fixed inset-x-3 bottom-3 z-50 max-h-[86vh] overflow-hidden rounded-[2rem] border border-white/12 bg-zinc-950/92 shadow-2xl shadow-black/60 backdrop-blur-2xl sm:inset-x-auto sm:bottom-6 sm:right-6 sm:top-6 sm:w-[430px]"
+        className="fixed inset-x-3 bottom-3 z-50 flex max-h-[86vh] flex-col overflow-hidden rounded-[2rem] border border-white/12 bg-zinc-950/92 shadow-2xl shadow-black/60 backdrop-blur-2xl sm:inset-x-auto sm:bottom-6 sm:right-6 sm:top-6 sm:w-[430px]"
         initial={{ opacity: 0, y: 28, x: 0 }}
         animate={{ opacity: 1, y: 0, x: 0 }}
         exit={{ opacity: 0, y: 28, x: 24 }}
@@ -339,7 +344,7 @@ function TopicPanel({ topic, language, title, posts, onClose }: TopicPanelProps)
         aria-modal="true"
         aria-labelledby="topic-title"
       >
-        <div className="relative h-64 overflow-hidden sm:h-72">
+        <div className="relative h-64 shrink-0 overflow-hidden sm:h-72">
           <Image
             src={topic.image_url}
             alt={title}
@@ -359,7 +364,7 @@ function TopicPanel({ topic, language, title, posts, onClose }: TopicPanelProps)
           </button>
         </div>
 
-        <div className="space-y-5 overflow-y-auto px-6 pb-7 pt-2 sm:px-7">
+        <div className="min-h-0 space-y-5 overflow-y-auto px-6 pb-7 pt-2 sm:px-7">
           <p className="font-mono text-xs uppercase tracking-[0.3em] text-teal-200/70">
             {language === "cs" ? "detail uzlu" : "node detail"}
           </p>
@@ -410,6 +415,25 @@ function TopicPanel({ topic, language, title, posts, onClose }: TopicPanelProps)
               className="inline-flex h-12 items-center justify-center rounded-full bg-teal-200 px-6 text-sm font-semibold text-zinc-950 shadow-xl shadow-teal-950/30 transition-colors hover:bg-white"
             >
               Prohlížej
+            </Link>
+          ) : null}
+          {topic.slug === "marcelka" ? (
+            <Link
+              href="/marcelka/psani-na-klavesnici"
+              className="group flex items-center gap-4 rounded-lg border border-teal-200/25 bg-teal-200/10 p-4 transition-colors hover:border-teal-200/60 hover:bg-teal-200/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-200"
+            >
+              <Keyboard className="size-8 shrink-0 text-teal-200" aria-hidden="true" />
+              <span className="min-w-0 flex-1">
+                <span className="block text-lg font-semibold text-white">
+                  {language === "cs" ? "Psaní na klávesnici" : "Typing practice"}
+                </span>
+                <span className="mt-1 block text-sm leading-6 text-zinc-300">
+                  {language === "cs"
+                    ? "Hravé procvičování české klávesnice"
+                    : "Playful practice on a Czech keyboard"}
+                </span>
+              </span>
+              <ArrowRight className="size-5 shrink-0 text-teal-200" aria-hidden="true" />
             </Link>
           ) : null}
         </div>
