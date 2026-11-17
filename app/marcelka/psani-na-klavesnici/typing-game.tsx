@@ -136,7 +136,7 @@ export function KeyboardTypingGame({ initialResults }: { initialResults: TypingR
       setElapsedMs(finalElapsedMs);
       setLastResult(result);
       setState("finished");
-      setSaveMessage("Ukladam vysledek...");
+      setSaveMessage("Ukládám výsledek...");
       void saveResult(result)
         .then(({ result: savedResult, results: nextResults }) => {
           setLastResult(savedResult);
@@ -145,7 +145,7 @@ export function KeyboardTypingGame({ initialResults }: { initialResults: TypingR
         })
         .catch(() => {
           setResults((current) => [result, ...current]);
-          setSaveMessage("Vysledek se nepodarilo ulozit do databaze.");
+          setSaveMessage("Výsledek se nepodařilo uložit do databáze.");
         });
     },
     [difficulty, playerName, school, className, results],
@@ -250,7 +250,7 @@ export function KeyboardTypingGame({ initialResults }: { initialResults: TypingR
     const cleanName = playerName.trim();
 
     if (!cleanName) {
-      setMessage("Nejdrive napis jmeno nebo prezdivku.");
+      setMessage("Nejdříve napiš jméno nebo přezdívku.");
       return;
     }
 
@@ -304,7 +304,7 @@ export function KeyboardTypingGame({ initialResults }: { initialResults: TypingR
             className="inline-flex h-12 items-center gap-2 rounded-full border border-white/14 bg-white/10 px-4 text-sm font-bold text-white shadow-xl shadow-black/25 backdrop-blur-md transition-colors hover:bg-white/16"
           >
             <ArrowLeft className="size-5" aria-hidden="true" />
-            Zpet
+            Zpět
           </Link>
           <div className="flex flex-wrap items-center gap-2 rounded-full border border-white/12 bg-white/10 px-4 py-2 text-sm font-black text-cyan-50 backdrop-blur-md">
             <Timer className="size-4" aria-hidden="true" />
@@ -350,10 +350,10 @@ export function KeyboardTypingGame({ initialResults }: { initialResults: TypingR
           >
             <div className="mx-auto w-full max-w-4xl text-center">
               <p className="font-mono text-xs uppercase tracking-[0.3em] text-lime-200">
-                Ceske rozlozeni klavesnice
+                České rozložení klávesnice
               </p>
               <h1 className="mt-3 text-4xl font-black leading-none text-white sm:text-6xl">
-                Napis znak na klavesnici
+                Napiš znak na klávesnici
               </h1>
               <div
                 className={`mx-auto mt-10 grid aspect-square w-full max-w-[22rem] place-items-center rounded-[2rem] border-4 text-[8rem] font-black leading-none shadow-2xl transition-all sm:max-w-[28rem] sm:text-[11rem] ${
@@ -373,7 +373,7 @@ export function KeyboardTypingGame({ initialResults }: { initialResults: TypingR
                   className="inline-flex h-13 items-center gap-2 rounded-full bg-white px-5 text-sm font-black text-slate-950 shadow-xl shadow-black/20"
                 >
                   <X className="size-5" aria-hidden="true" />
-                  Ukoncit
+                  Ukončit
                 </button>
                 <button
                   type="button"
@@ -381,7 +381,7 @@ export function KeyboardTypingGame({ initialResults }: { initialResults: TypingR
                   className="inline-flex h-13 items-center gap-2 rounded-full border border-white/14 bg-white/10 px-5 text-sm font-black text-white shadow-xl shadow-black/20 backdrop-blur-md"
                 >
                   <RotateCcw className="size-5" aria-hidden="true" />
-                  Zacit znovu
+                  Začít znovu
                 </button>
               </div>
             </div>
@@ -464,51 +464,51 @@ function SetupScreen({
               <Keyboard className="size-10" aria-hidden="true" />
             </div>
             <p className="mt-7 font-mono text-xs uppercase tracking-[0.32em] text-cyan-200">
-              Marcelka / trenink
+              Marcelka / trénink
             </p>
             <h1 className="mt-3 text-5xl font-black leading-none text-white drop-shadow-[0_5px_0_rgba(20,184,166,0.35)] sm:text-7xl">
-              Psani na klavesnici
+              Psaní na klávesnici
             </h1>
             <p className="mt-5 max-w-2xl text-base leading-7 text-cyan-50">
-              Pred startem prepni pocitac na ceske rozlozeni klavesnice. Hra rozlisuje mala a
-              velka pismena i ceskou diakritiku podle skutecne stisknute klavesy.
+              Před startem přepni počítač na české rozložení klávesnice. Hra rozlišuje malá a
+              velká písmena i českou diakritiku podle skutečně stisknuté klávesy.
             </p>
 
             <div className="mt-7 grid gap-4 sm:grid-cols-3">
-              <label className="grid gap-2 sm:col-span-3">
-                <span className="text-sm font-black text-white">Jmeno nebo prezdivka</span>
+              <label className="grid min-w-0 gap-2 sm:col-span-3">
+                <span className="text-sm font-black text-white">Jméno nebo přezdívka</span>
                 <input
                   value={playerName}
                   onChange={(event) => onPlayerNameChange(event.target.value)}
                   maxLength={40}
-                  placeholder="Napis prezdivku..."
-                  className="h-13 rounded-2xl border border-white/14 bg-slate-950/70 px-4 text-base font-bold text-white outline-none placeholder:text-white/35 focus:ring-2 focus:ring-lime-200"
+                  placeholder="Napiš přezdívku..."
+                  className="h-13 w-full min-w-0 rounded-2xl border border-white/14 bg-slate-950/70 px-4 text-base font-bold text-white outline-none placeholder:text-white/35 focus:ring-2 focus:ring-lime-200"
                 />
               </label>
-              <label className="grid gap-2 sm:col-span-2">
-                <span className="text-sm font-black text-white">Skola</span>
+              <label className="grid min-w-0 gap-2 sm:col-span-2">
+                <span className="text-sm font-black text-white">Škola</span>
                 <input
                   value={school}
                   onChange={(event) => onSchoolChange(event.target.value)}
                   maxLength={60}
-                  placeholder="Nepovinne"
-                  className="h-13 rounded-2xl border border-white/14 bg-slate-950/70 px-4 text-base font-bold text-white outline-none placeholder:text-white/35 focus:ring-2 focus:ring-lime-200"
+                  placeholder="Nepovinné"
+                  className="h-13 w-full min-w-0 rounded-2xl border border-white/14 bg-slate-950/70 px-4 text-base font-bold text-white outline-none placeholder:text-white/35 focus:ring-2 focus:ring-lime-200"
                 />
               </label>
-              <label className="grid gap-2">
-                <span className="text-sm font-black text-white">Trida</span>
+              <label className="grid min-w-0 gap-2">
+                <span className="text-sm font-black text-white">Třída</span>
                 <input
                   value={className}
                   onChange={(event) => onClassNameChange(event.target.value)}
                   maxLength={30}
-                  placeholder="Nepovinne"
-                  className="h-13 rounded-2xl border border-white/14 bg-slate-950/70 px-4 text-base font-bold text-white outline-none placeholder:text-white/35 focus:ring-2 focus:ring-lime-200"
+                  placeholder="Nepovinné"
+                  className="h-13 w-full min-w-0 rounded-2xl border border-white/14 bg-slate-950/70 px-4 text-base font-bold text-white outline-none placeholder:text-white/35 focus:ring-2 focus:ring-lime-200"
                 />
               </label>
             </div>
 
             <div className="mt-6 grid gap-3">
-              <span className="text-sm font-black text-white">Obtiznost</span>
+              <span className="text-sm font-black text-white">Obtížnost</span>
               <div className="grid gap-3 lg:grid-cols-3">
                 {typingDifficulties.map((item) => (
                   <button
@@ -530,7 +530,7 @@ function SetupScreen({
                       {item.description}
                     </span>
                     <span className="mt-2 block text-xs font-semibold text-cyan-100/70">
-                      {typingRoundLength} spravnych znaku
+                      {typingRoundLength} správných znaků
                     </span>
                   </button>
                 ))}
@@ -594,25 +594,25 @@ function FinishedScreen({
           <Trophy className="size-12" aria-hidden="true" />
         </div>
         <p className="mt-6 font-mono text-xs uppercase tracking-[0.32em] text-lime-200">
-          Dokonceno
+          Dokončeno
         </p>
         <h1 className="mt-3 text-5xl font-black text-white">{medal.label}</h1>
         <p className="mt-4 text-lg leading-8 text-cyan-50">
-          {result.playerName}, napsal/a jsi {typingRoundLength} znaku za {formatTime(result.elapsedMs)}.
+          {result.playerName}, napsal/a jsi {typingRoundLength} znaků za {formatTime(result.elapsedMs)}.
         </p>
 
         <div className="mt-7 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <ResultStat label="Body" value={String(result.points)} />
           <ResultStat label="Chyby" value={String(result.mistakes)} />
-          <ResultStat label="Presnost" value={`${result.accuracy.toFixed(1)} %`} />
+          <ResultStat label="Přesnost" value={`${result.accuracy.toFixed(1)} %`} />
           <ResultStat label="Rychlost" value={`${result.charsPerMinute.toFixed(1)} zn./min`} />
-          <ResultStat label="Nejdelsi combo" value={String(result.maxCombo)} />
-          <ResultStat label="Cas" value={formatTime(result.elapsedMs)} />
+          <ResultStat label="Nejdelší combo" value={String(result.maxCombo)} />
+          <ResultStat label="Čas" value={formatTime(result.elapsedMs)} />
         </div>
 
         <p className="mt-5 rounded-2xl border border-white/12 bg-slate-950/45 px-4 py-3 text-sm font-semibold leading-6 text-cyan-50">
-          Body = rychlost az 1260 bodu, presnost az 1500 bodu, combo az 600 bodu minus 12
-          bodu za kazdou chybu. Kazda obtiznost ma vlastni zebricek.
+          Body = rychlost až 1260 bodů, přesnost až 1500 bodů, combo až 600 bodů minus 12
+          bodů za každou chybu. Každá obtížnost má vlastní žebříček.
         </p>
 
         {saveMessage ? (
@@ -628,7 +628,7 @@ function FinishedScreen({
             className="inline-flex h-13 items-center gap-2 rounded-full bg-white px-5 text-sm font-black text-slate-950 shadow-xl shadow-black/20"
           >
             <RotateCcw className="size-5" aria-hidden="true" />
-            Hrat znovu
+            Hrát znovu
           </button>
           <button
             type="button"
@@ -636,14 +636,14 @@ function FinishedScreen({
             className="inline-flex h-13 items-center gap-2 rounded-full bg-lime-200 px-5 text-sm font-black text-slate-950 shadow-xl shadow-black/20"
           >
             <BarChart3 className="size-5" aria-hidden="true" />
-            Zebricek
+            Žebříček
           </button>
           <Link
             href="/marcelka"
             className="inline-flex h-13 items-center gap-2 rounded-full border border-white/14 bg-white/10 px-5 text-sm font-black text-white shadow-xl shadow-black/20 backdrop-blur-md"
           >
             <ArrowLeft className="size-5" aria-hidden="true" />
-            Zpet
+            Zpět
           </Link>
         </div>
       </div>
@@ -687,12 +687,12 @@ function LeaderboardModal({
     <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/72 px-4 py-6 backdrop-blur-sm">
       <div className="max-h-full w-full max-w-5xl overflow-y-auto rounded-[2rem] border border-white/14 bg-[#081225] p-5 shadow-2xl shadow-black/50 sm:p-7">
         <div className="mb-5 flex items-center justify-between gap-4">
-          <h2 className="text-3xl font-black text-white">Zebricek</h2>
+          <h2 className="text-3xl font-black text-white">Žebříček</h2>
           <button
             type="button"
             onClick={onClose}
             className="grid size-11 place-items-center rounded-full bg-white text-slate-950"
-            aria-label="Zavrit zebricek"
+            aria-label="Zavřít žebříček"
           >
             <X className="size-5" aria-hidden="true" />
           </button>
@@ -744,9 +744,9 @@ function LeaderboardPanel({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="font-mono text-xs uppercase tracking-[0.26em] text-lime-200">
-            Verejne vysledky
+            Veřejné výsledky
           </p>
-          <h2 className="mt-2 text-3xl font-black text-white">Zebricek</h2>
+          <h2 className="mt-2 text-3xl font-black text-white">Žebříček</h2>
         </div>
         <Medal className="size-9 text-yellow-200" aria-hidden="true" />
       </div>
@@ -784,13 +784,13 @@ function LeaderboardPanel({
           <input
             value={schoolFilter}
             onChange={(event) => onSchoolFilterChange(event.target.value)}
-            placeholder="Filtrovat skolu"
+            placeholder="Filtrovat školu"
             className="h-11 rounded-2xl border border-white/14 bg-slate-950/70 px-4 text-sm font-bold text-white outline-none placeholder:text-white/35 focus:ring-2 focus:ring-cyan-200"
           />
           <input
             value={classFilter}
             onChange={(event) => onClassFilterChange(event.target.value)}
-            placeholder="Filtrovat tridu"
+            placeholder="Filtrovat třídu"
             className="h-11 rounded-2xl border border-white/14 bg-slate-950/70 px-4 text-sm font-bold text-white outline-none placeholder:text-white/35 focus:ring-2 focus:ring-cyan-200"
           />
         </div>
@@ -799,7 +799,7 @@ function LeaderboardPanel({
       <ol className="mt-5 space-y-2">
         {filteredResults.length === 0 ? (
           <li className="rounded-2xl border border-white/10 bg-slate-950/45 px-4 py-5 text-sm font-bold text-cyan-50">
-            Zatim tu neni zadny vysledek.
+            Zatím tu není žádný výsledek.
           </li>
         ) : (
           filteredResults.map((result, index) => (
@@ -821,7 +821,7 @@ function LeaderboardPanel({
                   {result.playerName}
                 </span>
                 <span className="block truncate text-xs font-semibold text-cyan-100/65">
-                  {[result.school, result.className].filter(Boolean).join(" / ") || "Bez skoly"}
+                  {[result.school, result.className].filter(Boolean).join(" / ") || "Bez školy"}
                 </span>
               </span>
               <span className="font-black text-white">{result.points} b.</span>

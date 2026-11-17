@@ -2,15 +2,15 @@ import { ArrowLeft, Keyboard, Sparkles } from "lucide-react";
 import Link from "next/link";
 
 export const metadata = {
-  title: "Marcelka | Vyukove aplikace",
-  description: "Rozcestnik vyukovych aplikaci pro skolni deti.",
+  title: "Marcelka | Výukové aplikace",
+  description: "Rozcestník výukových aplikací pro školní děti.",
 };
 
 const apps = [
   {
-    title: "Psani na klavesnici",
+    title: "Psaní na klávesnici",
     description:
-      "Procvicej jednotlive znaky na ceske klavesnici, sbirej combo a zapis se do zebricku.",
+      "Procvičej jednotlivé znaky na české klávesnici, sbírej combo a zapiš se do žebříčku.",
     href: "/marcelka/psani-na-klavesnici",
     accent: "from-cyan-300 via-lime-200 to-yellow-200",
     icon: Keyboard,
@@ -29,24 +29,24 @@ export default function MarcelkaPage() {
             className="inline-flex h-12 items-center gap-2 rounded-full border border-white/14 bg-white/10 px-5 text-sm font-bold text-white shadow-xl shadow-black/25 backdrop-blur-md transition-colors hover:bg-white/16"
           >
             <ArrowLeft className="size-5" aria-hidden="true" />
-            Zpet
+            Zpět
           </Link>
           <div className="inline-flex h-12 items-center gap-2 rounded-full border border-cyan-200/30 bg-cyan-200 px-5 text-sm font-black text-slate-950 shadow-xl shadow-cyan-950/20">
             <Sparkles className="size-5" aria-hidden="true" />
-            Vyukove aplikace
+            Výukové aplikace
           </div>
         </header>
 
         <section className="flex flex-1 flex-col justify-center py-12">
           <p className="font-mono text-xs uppercase tracking-[0.32em] text-cyan-200">
-            Marcelcin skolni koutek
+            Marcelčin školní koutek
           </p>
           <h1 className="mt-4 max-w-4xl text-5xl font-black leading-none text-white drop-shadow-[0_6px_0_rgba(8,145,178,0.35)] sm:text-7xl">
-            Hry, ktere pomahaji trenovat
+            Hry, které pomáhají trénovat
           </h1>
           <p className="mt-6 max-w-2xl text-lg leading-8 text-cyan-50">
-            Vyber aplikaci a pust se do kratkeho cviceni. Casem tady muzou pribyvat dalsi
-            skolni hry a treninky.
+            Vyber aplikaci a pusť se do krátkého cvičení. Časem tady můžou přibývat další
+            školní hry a tréninky.
           </p>
 
           <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">

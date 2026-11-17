@@ -46,18 +46,18 @@ export const typingDifficulties: Array<{
 }> = [
   {
     id: "beginner",
-    label: "Zacatecnik",
+    label: "Začátečník",
     shortLabel: "1",
-    description: "Mala pismena bez diakritiky.",
+    description: "Malá písmena bez diakritiky.",
     tone: "from-emerald-300 via-lime-200 to-yellow-200 text-emerald-950",
     targetCharsPerMinute: 45,
     characters: Array.from("abcdefghijklmnopqrstuvwxyz"),
   },
   {
     id: "advanced",
-    label: "Pokrocily",
+    label: "Pokročilý",
     shortLabel: "2",
-    description: "Mala a velka pismena vcetne ceske diakritiky.",
+    description: "Malá a velká písmena včetně české diakritiky.",
     tone: "from-sky-300 via-cyan-200 to-emerald-200 text-sky-950",
     targetCharsPerMinute: 38,
     characters: Array.from(
@@ -66,9 +66,9 @@ export const typingDifficulties: Array<{
   },
   {
     id: "master",
-    label: "Mistr klavesnice",
+    label: "Mistr klávesnice",
     shortLabel: "3",
-    description: "Pismena, cislice a bezne specialni znaky ceske klavesnice.",
+    description: "Písmena, číslice a běžné speciální znaky české klávesnice.",
     tone: "from-fuchsia-300 via-rose-200 to-orange-200 text-fuchsia-950",
     targetCharsPerMinute: 34,
     characters: Array.from(
@@ -79,7 +79,7 @@ export const typingDifficulties: Array<{
 
 export const typingPeriods: Array<{ id: TypingPeriod; label: string }> = [
   { id: "today", label: "Dnes" },
-  { id: "week", label: "Tento tyden" },
+  { id: "week", label: "Tento týden" },
   { id: "all", label: "Celkem" },
 ];
 
@@ -133,14 +133,14 @@ export function calculateTypingMetrics({
 
 export function getTypingMedal(points: number, accuracy: number) {
   if (points >= 2750 && accuracy >= 96) {
-    return { label: "Zlata medaile", tone: "from-yellow-200 to-amber-400 text-amber-950" };
+    return { label: "Zlatá medaile", tone: "from-yellow-200 to-amber-400 text-amber-950" };
   }
 
   if (points >= 2200 && accuracy >= 90) {
-    return { label: "Stribrna medaile", tone: "from-slate-100 to-slate-300 text-slate-950" };
+    return { label: "Stříbrná medaile", tone: "from-slate-100 to-slate-300 text-slate-950" };
   }
 
-  return { label: "Bronzova medaile", tone: "from-orange-200 to-amber-700 text-orange-950" };
+  return { label: "Bronzová medaile", tone: "from-orange-200 to-amber-700 text-orange-950" };
 }
 
 export async function getTypingResults({

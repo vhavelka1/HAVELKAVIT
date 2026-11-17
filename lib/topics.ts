@@ -137,7 +137,7 @@ export const topicSeeds: Topic[] = [
     title_cs: "Marcelka",
     title_en: "Marcelka",
     description_cs:
-      "Rozcestnik vyukovych aplikaci pro skolni deti, kde se uceni potkava s hravym treninkem.",
+      "Rozcestník výukových aplikací pro školní děti, kde se učení potkává s hravým tréninkem.",
     description_en:
       "A learning apps hub for school children, where practice meets playful training.",
     image_url:
