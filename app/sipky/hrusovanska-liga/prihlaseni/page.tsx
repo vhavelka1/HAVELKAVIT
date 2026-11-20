@@ -1,0 +1,7 @@
+import Link from "next/link";
+import { login } from "../actions";
+export const metadata={title:"Přihlášení | Hrušovanská liga"};
+export default async function LoginPage({searchParams}:{searchParams:Promise<{error?:string;changed?:string}>}) {
+ const {error,changed}=await searchParams;
+ return <main className="min-h-screen bg-[#101513] px-5 py-12 text-white"><div className="mx-auto max-w-md"><Link href="/sipky/hrusovanska-liga" className="text-sm text-emerald-400">← Zpět na ligu</Link><h1 className="mt-10 text-3xl font-black">Přihlášení hráče</h1><p className="mt-3 text-zinc-400">Použijte e-mail a heslo přidělené správcem ligy.</p>{changed && <p className="mt-5 rounded-xl bg-emerald-950 p-4 text-emerald-200">Heslo bylo změněno. Přihlaste se znovu.</p>}{error && <p role="alert" className="mt-5 rounded-xl bg-rose-950 p-4 text-rose-200">Přihlášení se nezdařilo. Zkontrolujte údaje nebo zkuste později.</p>}<form action={login} className="mt-8 grid gap-4"><label className="grid gap-2 text-sm">E-mail<input type="email" name="email" required autoComplete="username" className="rounded-xl border border-white/15 bg-[#202b25] p-3"/></label><label className="grid gap-2 text-sm">Heslo<input type="password" name="password" required autoComplete="current-password" className="rounded-xl border border-white/15 bg-[#202b25] p-3"/></label><button className="mt-2 rounded-xl bg-emerald-400 p-3 font-bold text-emerald-950 hover:bg-emerald-300">Přihlásit se</button></form></div></main>;
+}

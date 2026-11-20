@@ -40,3 +40,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Oracle export contains private contacts and password hashes
+/exporty hrusovanske ligy/

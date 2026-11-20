@@ -1,0 +1,13 @@
+"use client";
+import { useState } from "react";
+import Link from "next/link";
+import type { LeagueData } from "@/lib/darts";
+const weekdays=["Po","Út","St","Čt","Pá","So","Ne"];
+export function LeagueCalendar({matches,players,live}:{matches:LeagueData["matches"];players:LeagueData["players"];live:boolean}) {
+ const now=new Date(); const [month,setMonth]=useState(()=>new Date(now.getFullYear(),now.getMonth(),1));
+ const year=month.getFullYear(), index=month.getMonth(), first=(new Date(year,index,1).getDay()+6)%7, length=new Date(year,index+1,0).getDate();
+ const key=(d:number)=>`${year}-${String(index+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+ const names=new Map(players.map(p=>[p.PLAYER_ID,p.PLAYER_NAME]));
+ const games=matches.filter(m=>m.STATUS!=="CANCELLED" && m.MATCH_DATE);
+ return <section className="mt-6 rounded-3xl border border-white/10 bg-[#18211c] p-5 sm:p-7"><div className="flex flex-wrap items-center justify-between gap-4"><div><h2 className="text-2xl font-bold">Kalendář zápasů</h2><p className="text-sm text-zinc-400">Naplánované i odehrané zápasy</p></div><div className="flex items-center gap-3"><button onClick={()=>setMonth(new Date(year,index-1,1))} aria-label="Předchozí měsíc" className="rounded-lg border border-white/10 px-3 py-2">‹</button><span className="min-w-36 text-center font-semibold capitalize">{month.toLocaleDateString("cs-CZ",{month:"long",year:"numeric"})}</span><button onClick={()=>setMonth(new Date(year,index+1,1))} aria-label="Další měsíc" className="rounded-lg border border-white/10 px-3 py-2">›</button></div></div><div className="mt-5 overflow-x-auto"><div className="min-w-[680px]"><div className="grid grid-cols-7 text-center text-xs font-bold uppercase text-zinc-500">{weekdays.map(d=><div key={d} className="py-2">{d}</div>)}</div><div className="grid grid-cols-7 gap-px overflow-hidden rounded-xl bg-white/10">{Array.from({length:Math.ceil((first+length)/7)*7},(_,i)=>{const d=i-first+1; const items=d>=1 && d<=length ? games.filter(m=>m.MATCH_DATE.slice(0,10)===key(d)) : [];return <div key={i} className="min-h-24 bg-[#202b25] p-2"><div className="text-xs font-bold text-zinc-400">{d>=1 && d<=length ? d : ""}</div>{items.map(m=>{const content=<><span className="font-bold text-emerald-400">{m.MATCH_DATE.slice(11,16)}</span> {names.get(m.HOME_PLAYER) || "?"} – {names.get(m.AWAY_PLAYER) || "?"} {m.SCORE && <strong>{m.SCORE}</strong>}</>;return live ? <Link key={m.Id} href={`/sipky/hrusovanska-liga/zapas/${m.Id}`} className="mt-1 block rounded bg-black/20 p-1 text-xs leading-4 hover:bg-emerald-900">{content}</Link> : <div key={m.Id} className="mt-1 rounded bg-black/20 p-1 text-xs leading-4">{content}</div>})}</div>})}</div></div></div></section>;
+}

@@ -110,6 +110,10 @@ export function PersonalSite({ topics, settings, posts }: PersonalSiteProps) {
             language={language}
             selectedTopic={selectedTopic}
             onSelect={(topic) => {
+              if (topic.slug === "sipky") {
+                router.push("/sipky");
+                return;
+              }
               if (topic.slug === "photography") {
                 router.push("/fotografie");
                 return;
@@ -196,6 +200,7 @@ function NodeNetwork({ topics, language, selectedTopic, onSelect }: NodeNetworkP
       { x: 49, y: 51 },
       { x: 84, y: 57 },
       { x: 31, y: 16 },
+      { x: 70, y: 12 },
     ];
 
     return topics.map((topic, index) => ({
@@ -227,6 +232,9 @@ function NodeNetwork({ topics, language, selectedTopic, onSelect }: NodeNetworkP
     [5, 10],
     [6, 10],
     [8, 10],
+    [0, 11],
+    [1, 11],
+    [7, 11],
   ];
 
   return (

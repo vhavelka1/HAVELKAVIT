@@ -27,6 +27,7 @@ type SupabaseTopicRow = {
 };
 
 export const topicSeeds: Topic[] = [
+  { id: "sipky", slug: "sipky", title_cs: "Šipky", title_en: "Darts", description_cs: "Soutěže, výsledky a rozpisy šipkových lig.", description_en: "Competitions, results and fixtures from the darts leagues.", image_url: "/hrusovanska-liga-logo.jpg" },
   {
     id: "photography",
     slug: "photography",
@@ -225,7 +226,7 @@ export function slugify(value: string) {
 }
 
 export function mergeRequiredSeeds<T extends Topic>(topics: T[]) {
-  const requiredSlugs = ["emicka", "adamek", "zs"];
+  const requiredSlugs = ["emicka", "adamek", "zs", "sipky"];
   const merged: Topic[] = [...topics];
 
   for (const slug of requiredSlugs) {
